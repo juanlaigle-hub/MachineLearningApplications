@@ -7,8 +7,8 @@ honest training and validation, model export, and a live demo that runs in the b
 
 | | Project | Industrial problem | Result | Live demo |
 |---|---|---|---|---|
-| ![](assets/clasificador.gif) | **[Dynamometer card diagnosis](ml_cartas_dinamometricas/)** | Oil & gas: classify every downhole card of a sucker-rod pumped well into 7 conditions (fluid pound, gas interference, valve leaks, parted rod, pump tagging bottom) | **98.7 %** test accuracy, **96.7 %** on out-of-range wells (engineer rules: 50 %) | [Open](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_cartas_dinamometricas/clasificador.html) |
-| ![](assets/sensor_virtual.gif) | **[Juice concentrate soft sensor](ml_sensor_virtual_evaporador/)** | Food: estimate every minute the °Brix (refractometer backup), HMF and color of a 5-effect apple juice evaporator | °Brix error **1.34** on an unseen step test (naive: 6.45); HMF **R² 0.93** from 120 lab samples | [Open](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_sensor_virtual_evaporador/sensor_virtual.html) |
+| ![](assets/clasificador-1.jpg) | **[Dynamometer card diagnosis](ml_cartas_dinamometricas/)** | Oil & gas: classify every downhole card of a sucker-rod pumped well into 7 conditions (fluid pound, gas interference, valve leaks, parted rod, pump tagging bottom) | **98.7 %** test accuracy, **96.7 %** on out-of-range wells (engineer rules: 50 %) | [Open](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_cartas_dinamometricas/clasificador.html) |
+| ![](assets/sensor_virtual-1.jpg) | **[Juice concentrate soft sensor](ml_sensor_virtual_evaporador/)** | Food: estimate every minute the °Brix (refractometer backup), HMF and color of a 5-effect apple juice evaporator | °Brix error **1.34** on an unseen step test (naive: 6.45); HMF **R² 0.93** from 120 lab samples | [Open](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_sensor_virtual_evaporador/sensor_virtual.html) |
 
 ## Engineering decisions
 
@@ -50,8 +50,8 @@ Each project README has a 12-step table comparing how it is done in a real plant
 ## Layout
 
 ```
-ml_cartas_dinamometricas/       dataset generator, executed notebook, exported model, live page, video
-ml_sensor_virtual_evaporador/   historian and lab generator, executed notebook, model, page, video
+ml_cartas_dinamometricas/       dataset generator, executed notebook, exported model, live page
+ml_sensor_virtual_evaporador/   historian and lab generator, executed notebook, model, page
 assets/                         previews
 index.html                      portfolio landing page (GitHub Pages)
 ```

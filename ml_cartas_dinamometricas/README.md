@@ -8,7 +8,7 @@ probabilidad para cada clase.
 Este ejercicio es independiente: no modifica el simulador de [`bombeo_mecanico/`](https://github.com/juanlaigle-hub/Simulations3D/tree/main/bombeo_mecanico) (repositorio `Simulations3D`). Usa una **copia de su núcleo
 físico** para generar los datos (`datos/simulador_bombeo.js`).
 
-**Video de la demo:** [`demo_clasificador.mp4`](demo_clasificador.mp4) (170 s).
+<p><img src="../assets/clasificador-1.jpg" width="49%" alt=""> <img src="../assets/clasificador-2.jpg" width="49%" alt=""></p>
 **Notebook ejecutado:** [`notebook/entrenamiento_clasificador.ipynb`](notebook/entrenamiento_clasificador.ipynb), que se puede ver en GitHub con todos sus gráficos.
 
 ## Resultados
@@ -100,7 +100,6 @@ está activa en la simulación, para comparar. La pestaña "Fallas" permite prov
 | `modelo/comparacion_modelos.csv` | Tabla de resultados |
 | `figuras/` | Gráficos del notebook |
 | `clasificador.html` | Simulador con el diagnóstico en vivo |
-| `demo_clasificador.mp4` | Video de la demo guiada |
 
 ## Limitaciones
 

@@ -8,8 +8,8 @@ el navegador.
 
 | | Proyecto | Problema industrial | Resultado | Demo en vivo |
 |---|---|---|---|---|
-| ![](assets/clasificador.gif) | **[Diagnóstico de cartas dinamométricas](ml_cartas_dinamometricas/)** | Oil & gas: clasificar cada carta de fondo de un pozo con bombeo mecánico en 7 condiciones (golpe de fluido, gas, fugas en válvulas, varilla cortada, golpe abajo) | **98,7 %** de exactitud en prueba, **96,7 %** en pozos fuera de rango (reglas de ingeniero: 50 %) | [Abrir](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_cartas_dinamometricas/clasificador.html) |
-| ![](assets/sensor_virtual.gif) | **[Sensor virtual de jugo concentrado](ml_sensor_virtual_evaporador/)** | Alimentos: estimar cada minuto el °Brix (respaldo del refractómetro), el HMF y el color en un evaporador de 5 efectos de jugo de manzana | Error de °Brix **1,34** en un ensayo no visto (ingenuo: 6,45); HMF con **R² 0,93** a partir de 120 análisis | [Abrir](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_sensor_virtual_evaporador/sensor_virtual.html) |
+| ![](assets/clasificador-1.jpg) | **[Diagnóstico de cartas dinamométricas](ml_cartas_dinamometricas/)** | Oil & gas: clasificar cada carta de fondo de un pozo con bombeo mecánico en 7 condiciones (golpe de fluido, gas, fugas en válvulas, varilla cortada, golpe abajo) | **98,7 %** de exactitud en prueba, **96,7 %** en pozos fuera de rango (reglas de ingeniero: 50 %) | [Abrir](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_cartas_dinamometricas/clasificador.html) |
+| ![](assets/sensor_virtual-1.jpg) | **[Sensor virtual de jugo concentrado](ml_sensor_virtual_evaporador/)** | Alimentos: estimar cada minuto el °Brix (respaldo del refractómetro), el HMF y el color en un evaporador de 5 efectos de jugo de manzana | Error de °Brix **1,34** en un ensayo no visto (ingenuo: 6,45); HMF con **R² 0,93** a partir de 120 análisis | [Abrir](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_sensor_virtual_evaporador/sensor_virtual.html) |
 
 ## Decisiones de ingeniería
 
@@ -53,8 +53,8 @@ aquí:
 ## Estructura
 
 ```
-ml_cartas_dinamometricas/       generador del dataset, notebook ejecutado, modelo exportado, página en vivo, video
-ml_sensor_virtual_evaporador/   generador del historiador y del laboratorio, notebook ejecutado, modelo, página, video
+ml_cartas_dinamometricas/       generador del dataset, notebook ejecutado, modelo exportado, página en vivo
+ml_sensor_virtual_evaporador/   generador del historiador y del laboratorio, notebook ejecutado, modelo, página
 assets/                         previews
 index.html                      portada del portafolio (GitHub Pages)
 ```

@@ -8,7 +8,7 @@ la planta ya tiene (temperaturas, presiones y caudales):
 Este ejercicio es independiente: no modifica el simulador de [`evaporador_jugo/`](https://github.com/juanlaigle-hub/Simulations3D/tree/main/evaporador_jugo) (repositorio `Simulations3D`). Usa una **copia de su núcleo
 físico** para generar los datos (`datos/simulador_evaporador.js`).
 
-**Video de la demo:** [`demo_sensor_virtual.mp4`](demo_sensor_virtual.mp4) (160 s).
+<p><img src="../assets/sensor_virtual-1.jpg" width="49%" alt=""> <img src="../assets/sensor_virtual-2.jpg" width="49%" alt=""></p>
 **Notebook ejecutado:** [`notebook/entrenamiento_sensor_virtual.ipynb`](notebook/entrenamiento_sensor_virtual.ipynb).
 
 ## Resultados
@@ -128,7 +128,6 @@ Con los botones se puede simular la falla del refractómetro y pasar el control 
 | `modelo/*.csv` | Tablas de resultados, constantes cinéticas y chequeos de fenomenología |
 | `figuras/` | Gráficos del notebook |
 | `sensor_virtual.html` | Evaporador con el sensor virtual en vivo |
-| `demo_sensor_virtual.mp4` | Video de la demo guiada |
 
 ## Limitaciones
 
