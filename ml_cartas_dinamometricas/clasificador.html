@@ -282,7 +282,7 @@ main.hl-spm .math .hl-spm, main.hl-gas .math .hl-gas, main.hl-leak .math .hl-lea
       <div class="tex">\[ \frac{\partial^2 u}{\partial t^2} = v^2\,\frac{\partial^2 u}{\partial x^2} - c\,\frac{\partial u}{\partial t} + g\left(1 - \frac{\rho_f}{\rho_s}\right), \qquad v = \sqrt{E/\rho_s} \]
       \[ u(0,t) = -y_{\text{pr}}(t), \qquad E A_r \left.\frac{\partial u}{\partial x}\right|_{x=\class{hl-rod}{L}} = F_p(t) \]
       \[ \text{PRL}(t) = E A_r \left.\frac{\partial u}{\partial x}\right|_{x=0} \]</div>
-      <p>u(x, t) es el desplazamiento de cada punto de la varilla (positivo hacia abajo). La sarta de 1500 m es un resorte largo: las ondas de tensión tardan L/v ≈ 0,3 s en ir y volver. Por eso la carga en superficie no es igual a la de la bomba. Se resuelve con diferencias finitas: 50 tramos de 30 m y paso de 1 ms.</p>
+      <p>u(x, t) es el desplazamiento de cada punto de la varilla (positivo hacia abajo). La sarta de 1500 m es un resorte largo: las ondas de tensión tardan L/v ≈ 0,3 s en llegar de la superficie a la bomba (0,6 s ida y vuelta). Por eso la carga en superficie no es igual a la de la bomba. Se resuelve con diferencias finitas: 50 tramos de 30 m y paso de 1 ms.</p>
       <div class="live" id="lv-wave"></div>
     </section>
     <section class="eq" id="eq-pump">
