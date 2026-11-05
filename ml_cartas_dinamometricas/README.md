@@ -1,116 +1,116 @@
-# Diagnóstico de cartas dinamométricas con machine learning
+# Dynamometer card diagnosis with machine learning
 
-Clasificador automático de fallas de bombeo mecánico a partir de la **carta de fondo**. Este es un uso real de ML en
-la producción de petróleo: los controladores de pozo y el SCADA registran una carta por ciclo, y el modelo marca
-golpe de fluido, interferencia de gas, fugas en las válvulas, varilla cortada o bomba golpeando abajo, con una
-probabilidad para cada clase.
+[Versión en español](README.es.md)
 
-Este ejercicio es independiente: no modifica el simulador de [`bombeo_mecanico/`](https://github.com/juanlaigle-hub/Simulations3D/tree/main/bombeo_mecanico) (repositorio `Simulations3D`). Usa una **copia de su núcleo
-físico** para generar los datos (`datos/simulador_bombeo.js`).
+Automatic classifier of sucker-rod pumping faults from the **downhole card**. This is a real use of ML in oil
+production: well controllers and SCADA record one card per stroke, and the model flags fluid pound, gas interference,
+valve leaks, parted rod or pump tagging bottom, with a probability for each class.
+
+This exercise is standalone: it does not modify the simulator in [`bombeo_mecanico/`](https://github.com/juanlaigle-hub/Simulations3D/tree/main/bombeo_mecanico) (repository `Simulations3D`). It uses a **copy of its physics
+core** to generate the data (`datos/simulador_bombeo.js`).
 
 <p><img src="../assets/clasificador-1.jpg" width="49%" alt=""> <img src="../assets/clasificador-2.jpg" width="49%" alt=""></p>
 
-## Cómo funciona, en 5 pasos
+## How it works, in 5 steps
 
-![Secuencia del diagnóstico de cartas en 5 pasos: medir, llevar al fondo con física, resumir en números, comparar con lo aprendido, avisar o consultar](figuras/00_secuencia.png)
+![Card diagnosis sequence in 5 steps: measure, take it downhole with physics, summarize in numbers, compare with what was learned, alert or ask](figuras/00_secuencia.png)
 
-**Notebook ejecutado:** [`notebook/entrenamiento_clasificador.ipynb`](notebook/entrenamiento_clasificador.ipynb), que se puede ver en GitHub con todos sus gráficos.
+**Executed notebook:** [`notebook/entrenamiento_clasificador.ipynb`](notebook/entrenamiento_clasificador.ipynb), viewable on GitHub with all its plots.
 
-## Resultados
+## Results
 
-| Modelo | Exactitud en prueba | F1 macro | Exactitud en pozos fuera de rango |
+| Model | Test accuracy | Macro F1 | Accuracy on out-of-range wells |
 |---|---|---|---|
-| Reglas de ingeniero (llenado, carga máx./mín.) | 49,9 % | 0,38 | 46,7 % |
-| **Gradient boosting** (desplegado) | **98,7 %** | **0,987** | **96,7 %** |
-| Red neuronal MLP 64-32 | 99,0 % | 0,990 | 96,2 % |
+| Engineer's rules (fillage, max./min. load) | 49.9 % | 0.38 | 46.7 % |
+| **Gradient boosting** (deployed) | **98.7 %** | **0.987** | **96.7 %** |
+| MLP neural network 64-32 | 99.0 % | 0.990 | 96.2 % |
 
-Los pozos fuera de rango son más profundos (2250–2600 m), más rápidos (11–12,5 GPM) y tienen otros pistones y
-fluidos. El modelo nunca los vio y aun así acierta el 96,7 %.
+Out-of-range wells are deeper (2250–2600 m), faster (11–12.5 SPM) and have other plungers and fluids. The model never
+saw them and still gets 96.7 % right.
 
-**¿Carta de fondo o de superficie?** El mismo modelo entrenado con la carta de **superficie** acierta el 89,9 % en
-prueba, pero solo el **33,8 %** fuera de rango. La carta de superficie depende de la dinámica de la sarta de cada pozo.
-Por eso la industria diagnostica con la carta de fondo, calculada con la ecuación de onda, y el análisis lo confirma
-con datos.
+**Downhole or surface card?** The same model trained on the **surface** card reaches 89.9 % on the test set, but only
+**33.8 %** out of range. The surface card depends on each well's rod-string dynamics. That is why the industry
+diagnoses with the downhole card, computed with the wave equation, and this analysis confirms it with data.
 
-![Matriz de confusión](figuras/02_matriz_confusion.png)
+![Confusion matrix](figuras/02_matriz_confusion.png)
 
-## Fenomenología: cómo se verificó que todo respete la física
+## Phenomenology: how it was verified that everything respects the physics
 
-1. **Al generar los datos.** Cada muestra se descarta si su física no corresponde a la etiqueta (`fenomenologiaOK` en `datos/generar_dataset.js`):
-   - golpe de fluido: llenado < 0,88;
-   - interferencia de gas: llenado < 0,92;
-   - fugas: al menos 8 % menos de producción que el mismo pozo sano;
-   - varilla cortada: producción ≈ 0;
-   - golpe abajo: carga de compresión < −3 kN.
+1. **When generating the data.** Each sample is discarded if its physics does not match its label (`fenomenologiaOK` in `datos/generar_dataset.js`):
+   - fluid pound: fillage < 0.88;
+   - gas interference: fillage < 0.92;
+   - leaks: at least 8 % less production than the same healthy well;
+   - parted rod: production ≈ 0;
+   - tagging bottom: compressive load < −3 kN.
 
-   Se descartaron 476 casos de "golpe abajo" en los que el pistón no llegaba a tocar el fondo.
-2. **Un error del simulador detectado por estos chequeos.** La fuga en la válvula viajera *aumentaba* la producción,
-   porque el líquido que se fugaba se volvía a contar como producido. Se corrigió en el núcleo y también en
-   [`bombeo_mecanico/`](https://github.com/juanlaigle-hub/Simulations3D/tree/main/bombeo_mecanico), en un commit separado. Ahora la producción baja con la severidad: 251 → 192 / 144 / 94 bbl/d.
-3. **Antes de entrenar.** El notebook verifica con `assert` los promedios por clase: llenado, producción relativa y cargas.
-4. **Después de entrenar, con barridos continuos.** Se usa un pozo que el modelo no vio:
-   - el aporte baja de a poco: el modelo pasa de "normal" a "golpe de fluido" cuando el llenado cae por debajo
-     de 0,88, justo donde lo indica la física;
-   - la severidad de las fugas sube de 0 a 5: la probabilidad de la fuga correcta crece hasta 1.
+   476 "tagging bottom" cases where the plunger never reached the bottom were discarded.
+2. **A simulator bug caught by these checks.** The travelling-valve leak *increased* production, because the leaked
+   liquid was counted again as produced. It was fixed in the core and also in
+   [`bombeo_mecanico/`](https://github.com/juanlaigle-hub/Simulations3D/tree/main/bombeo_mecanico), in a separate commit. Production now drops with severity: 251 → 192 / 144 / 94 bbl/d.
+3. **Before training.** The notebook checks the per-class averages with `assert`: fillage, relative production and loads.
+4. **After training, with continuous sweeps.** A well the model never saw is used:
+   - inflow decreases gradually: the model switches from "normal" to "fluid pound" when fillage drops below 0.88,
+     exactly where the physics says;
+   - leak severity goes from 0 to 5: the probability of the correct leak grows to 1.
 
-   En severidades menores a las del entrenamiento el modelo duda, y eso se muestra.
-5. **Explicabilidad.** Los rasgos más importantes son la relación de carreras pistón/superficie (varilla cortada),
-   la carga mínima relativa (golpe abajo), la carga máxima y el área de la carta (llenado), todos con sentido físico.
+   At severities lower than those in training the model hesitates, and that is shown.
+5. **Explainability.** The most important features are the plunger/surface stroke ratio (parted rod), the relative
+   minimum load (tagging bottom), the maximum load and the card area (fillage), all physically meaningful.
 
-![Barridos de fenomenología](figuras/05_fenomenologia_barridos.png)
+![Phenomenology sweeps](figuras/05_fenomenologia_barridos.png)
 
-## Paso a paso: cómo se hace esto en un yacimiento real
+## Step by step: how this is done in a real field
 
-| Paso | En un proyecto real | En este ejercicio |
+| Step | In a real project | In this exercise |
 |---|---|---|
-| **1. Definir el problema y el KPI** | Qué fallas importan, cuánto cuesta no detectarlas y cuánto una falsa alarma. Meta: recall alto en varilla cortada y fugas | 7 clases; se prioriza exhaustividad en las fallas críticas |
-| **2. Conseguir los datos** | Exportar del SCADA o de los POC las cartas de superficie de meses de operación, con las condiciones de cada pozo (profundidad, varillas, pistón, GPM, nivel de fluido) | `datos/generar_dataset.js` simula 2800 pozos distintos con ruido de dinamómetro |
-| **3. Calcular la carta de fondo** | Con la ecuación de onda de Gibbs a partir de la carta de superficie. Es software estándar en los sistemas de diagnóstico | El simulador entrega la carta de fondo directamente |
-| **4. Etiquetar** | Ingenieros de producción etiquetan una muestra representativa y se cruzan las etiquetas con las intervenciones de pulling (lo que se encontró al sacar la bomba) | Etiquetas por construcción, con chequeos de fenomenología que descartan casos ambiguos |
-| **5. Limpiar y normalizar** | Descartar cartas incompletas, remuestrear a puntos fijos, normalizar por la carga de fluido del pozo | Remuestreo 32 + 32 puntos y rasgos de escala relativos a $F_o$ |
-| **6. Dividir los datos** | **Por pozo**, nunca al azar entre cartas del mismo pozo, para no filtrar información. Reservar un yacimiento o un período completo para la prueba final | Cada muestra es un pozo distinto, más un set de pozos fuera de rango |
-| **7. Línea base** | Comparar contra las reglas que ya tiene el POC | Las reglas aciertan el 50 % |
-| **8. Entrenar y comparar modelos** | Gradient boosting, redes neuronales y, con datos reales abundantes, redes convolucionales sobre la imagen de la carta | Gradient boosting y MLP |
-| **9. Validar la física** | Revisar con especialistas las matrices de confusión, los rasgos importantes y los casos de borde | Barridos continuos, `assert` y explicabilidad |
-| **10. Desplegar** | Exportar el modelo (ONNX, PMML o el formato del SCADA) y verificar que dé lo mismo que en Python. Correrlo al cerrar cada ciclo y enviar las alertas a la sala de control | Exportado a JSON (`modelo/clasificador_cartas.json`), verificado con diferencia 0 contra scikit-learn, y ejecutado en `clasificador.html` |
-| **11. Umbral de confianza** | Si la probabilidad máxima es baja, la carta va a revisión humana | Umbral de 70 % |
-| **12. Monitorear y reentrenar** | Vigilar la deriva de los rasgos mes a mes, registrar las correcciones de los ingenieros y reentrenar | Discutido en el notebook |
+| **1. Define the problem and the KPI** | Which faults matter, how much missing them costs and how much a false alarm costs. Goal: high recall on parted rod and leaks | 7 classes; recall on critical faults is prioritized |
+| **2. Get the data** | Export surface cards from months of operation from SCADA or the POCs, with each well's conditions (depth, rods, plunger, SPM, fluid level) | `datos/generar_dataset.js` simulates 2800 different wells with dynamometer noise |
+| **3. Compute the downhole card** | With the Gibbs wave equation from the surface card. It is standard software in diagnostic systems | The simulator delivers the downhole card directly |
+| **4. Label** | Production engineers label a representative sample, and labels are cross-checked with pulling jobs (what was found when the pump came out) | Labels by construction, with phenomenology checks that discard ambiguous cases |
+| **5. Clean and normalize** | Discard incomplete cards, resample to fixed points, normalize by the well's fluid load | 32 + 32 point resampling and scale features relative to $F_o$ |
+| **6. Split the data** | **By well**, never randomly across cards of the same well, to avoid leakage. Hold out a whole field or period for the final test | Each sample is a different well, plus a set of out-of-range wells |
+| **7. Baseline** | Compare against the rules the POC already has | The rules get 50 % right |
+| **8. Train and compare models** | Gradient boosting, neural networks and, with abundant real data, convolutional networks on the card image | Gradient boosting and MLP |
+| **9. Validate the physics** | Review confusion matrices, important features and edge cases with specialists | Continuous sweeps, `assert` and explainability |
+| **10. Deploy** | Export the model (ONNX, PMML or the SCADA format) and check it gives the same result as in Python. Run it at the end of each stroke and send alerts to the control room | Exported to JSON (`modelo/clasificador_cartas.json`), verified with zero difference against scikit-learn, and run in `clasificador.html` |
+| **11. Confidence threshold** | If the maximum probability is low, the card goes to human review | 70 % threshold |
+| **12. Monitor and retrain** | Watch feature drift month by month, log engineers' corrections and retrain | Discussed in the notebook |
 
-## Cómo usarlo
+## How to use it
 
 ```bash
 cd ml_cartas_dinamometricas/datos
-node generar_dataset.js 400 7 base      # 2800 cartas (≈ 8 min)
-node generar_dataset.js 60 99 fuera     # 420 cartas de pozos fuera de rango
-node generar_dataset.js 1 5 barrido     # barridos para verificar la fenomenología
+node generar_dataset.js 400 7 base      # 2800 cards (≈ 8 min)
+node generar_dataset.js 60 99 fuera     # 420 cards from out-of-range wells
+node generar_dataset.js 1 5 barrido     # sweeps to verify the phenomenology
 cd ../notebook
 pip install -r ../requirements.txt
-python construir_notebook.py entrenamiento_clasificador.py   # entrena, evalúa, exporta y guarda el .ipynb ejecutado
+python construir_notebook.py entrenamiento_clasificador.py   # trains, evaluates, exports and saves the executed .ipynb
 ```
 
-Después se abre `clasificador.html` en el navegador: es el simulador de bombeo con el panel "Diagnóstico automático
-· machine learning". En cada ciclo muestra la clase predicha, la confianza, las 7 probabilidades y la falla que
-está activa en la simulación, para comparar. La pestaña "Fallas" permite provocar cualquier falla, y el botón
-"▶ Demo guiada" las recorre una por una.
+Then open `clasificador.html` in the browser: it is the pumping simulator with the "Automatic diagnosis · machine
+learning" panel. At every stroke it shows the predicted class, the confidence, the 7 probabilities and the fault that is
+active in the simulation, for comparison. The "Faults" tab lets you trigger any fault, and the "▶ Guided demo" button
+goes through them one by one.
 
-## Archivos
+## Files
 
-| Archivo | Contenido |
+| File | Contents |
 |---|---|
-| `datos/simulador_bombeo.js` | Copia del núcleo físico de bombeo (ecuación de onda, bomba, válvulas) |
-| `datos/generar_dataset.js` | Generador del dataset con chequeos de fenomenología |
-| `datos/dataset.csv`, `dataset_fuera_de_rango.csv`, `dataset_barrido.csv` | Datos generados (2800 + 420 + 73 cartas) |
-| `notebook/entrenamiento_clasificador.py` / `.ipynb` | Entrenamiento, evaluación, fenomenología y exportación |
-| `modelo/clasificador_cartas.json` | Modelo desplegable (1750 árboles) |
-| `modelo/comparacion_modelos.csv` | Tabla de resultados |
-| `figuras/` | Gráficos del notebook |
-| `clasificador.html` | Simulador con el diagnóstico en vivo |
+| `datos/simulador_bombeo.js` | Copy of the pumping physics core (wave equation, pump, valves) |
+| `datos/generar_dataset.js` | Dataset generator with phenomenology checks |
+| `datos/dataset.csv`, `dataset_fuera_de_rango.csv`, `dataset_barrido.csv` | Generated data (2800 + 420 + 73 cards) |
+| `notebook/entrenamiento_clasificador.py` / `.ipynb` | Training, evaluation, phenomenology and export |
+| `modelo/clasificador_cartas.json` | Deployable model (1750 trees) |
+| `modelo/comparacion_modelos.csv` | Results table |
+| `figuras/` | Notebook plots |
+| `clasificador.html` | Simulator with live diagnosis |
 
-## Limitaciones
+## Limitations
 
-- Los datos son sintéticos. El modelo es un **punto de partida**: antes de usarlo en operación hay que medir su
-  exactitud con cartas reales etiquetadas y reentrenarlo con ellas.
-- Faltan fallas reales que el simulador no modela: barril gastado, pistón trabado, fricción en pozos desviados,
-  fallas combinadas.
-- Con baja presión de admisión, el gas libre produce cartas parecidas al golpe de fluido. Es una confusión real de la
-  industria, y conviene cruzar el diagnóstico con el nivel de fluido medido (ecómetro).
+- The data is synthetic. The model is a **starting point**: before using it in operation, its accuracy must be measured
+  on real labelled cards and it must be retrained with them.
+- Some real faults are not modelled by the simulator: worn barrel, stuck plunger, friction in deviated wells,
+  combined faults.
+- With low intake pressure, free gas produces cards similar to fluid pound. This is a real confusion in the industry,
+  and the diagnosis should be cross-checked with the measured fluid level (echometer).
