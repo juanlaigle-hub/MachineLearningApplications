@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sensor Virtual Evaporador</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sala de control de una juguera — visor 3D del evaporador, consola de proceso a la derecha, cuaderno de ecuaciones desplegable. Verde manzana para mandos; ámbar del concentrado para el producto. */
+:root{
+  --bg:#eceeea; --panel:#f6f7f4; --raise:#ffffff; --fg:#171b17; --muted:#5b625a; --line:#d0d5cd;
+  --accent:#2b8a3e; --accent-ink:#ffffff; --ref:#1c7ed6; --hi:#c2255c; --hi-bg:#fde8ef;
+  --ok:#2b8a3e; --warn:#c77700; --crit:#c92a2a;
+  --sky:#e3e7e4; --floor:#d3d7d2; --grid1:#9aa39a; --grid2:#bcc3bb;
+  --c-brix:#b8741a; --c-t:#c92a2a; --c-hmf:#7048e8; --c-f:#2b8a3e;
+  --f-display:"Chakra Petch","Bahnschrift","Arial Narrow",sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111411; --panel:#181c18; --raise:#1f241f; --fg:#e6eae5; --muted:#949c92; --line:#2e352e;
+    --accent:#51cf66; --accent-ink:#06210c; --ref:#4dabf7; --hi:#ff6b9d; --hi-bg:#3a1a27;
+    --ok:#51cf66; --warn:#fcc419; --crit:#ff6b6b;
+    --sky:#141814; --floor:#202620; --grid1:#3a443a; --grid2:#283028;
+    --c-brix:#f0a845; --c-t:#ff6b6b; --c-hmf:#b197fc; --c-f:#69db7c;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111411; --panel:#181c18; --raise:#1f241f; --fg:#e6eae5; --muted:#949c92; --line:#2e352e;
+  --accent:#51cf66; --accent-ink:#06210c; --ref:#4dabf7; --hi:#ff6b9d; --hi-bg:#3a1a27;
+  --ok:#51cf66; --warn:#fcc419; --crit:#ff6b6b;
+  --sky:#141814; --floor:#202620; --grid1:#3a443a; --grid2:#283028;
+  --c-brix:#f0a845; --c-t:#ff6b6b; --c-hmf:#b197fc; --c-f:#69db7c;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:12px 16px; display:flex; flex-direction:column; gap:12px}
+@media (min-width: 1000px){ html,body{height:100%} body{overflow:hidden} main{flex:1; min-height:0} }
+header.bar{display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px}
+.brand{min-width:0}
+.brand h1{margin:0; font:700 1.6rem/1 var(--f-display); letter-spacing:.02em; text-wrap:balance}
+.brand h1 em{font-style:normal; color:var(--accent)}
+.brand p{margin:2px 0 0; color:var(--muted); font-size:.85rem}
+.spacer{flex:1}
+.chip{min-width:236px; justify-content:center; font:600 .78rem var(--f-display); letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:999px; border:1.5px solid var(--line); color:var(--muted); display:inline-flex; gap:7px; align-items:center; background:var(--panel)}
+.chip i{width:8px; height:8px; border-radius:50%; background:var(--muted)}
+.chip[data-s="ok"]{border-color:var(--ok); color:var(--ok)} .chip[data-s="ok"] i{background:var(--ok)}
+.chip[data-s="warn"]{border-color:var(--warn); color:var(--warn)} .chip[data-s="warn"] i{background:var(--warn)}
+.chip[data-s="crit"]{border-color:var(--crit); color:var(--crit)} .chip[data-s="crit"] i{background:var(--crit)}
+.clock{font:.82rem var(--f-mono); color:var(--muted); font-variant-numeric:tabular-nums}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--panel)}
+.seg button{font:500 .8rem var(--f-body); border:0; background:transparent; color:var(--fg); padding:6px 10px; cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--fg); color:var(--bg)}
+.mathbtn{font:600 .9rem var(--f-display); letter-spacing:.04em; border:1.5px solid var(--accent); color:var(--accent); background:transparent; border-radius:8px; padding:6px 12px; cursor:pointer; display:inline-flex; gap:8px; align-items:center}
+.mathbtn[aria-expanded="true"]{background:var(--accent); color:var(--accent-ink)}
+.mathbtn span{font-family:"Times New Roman",serif; font-size:1.15rem; line-height:1}
+.demobtn{font:600 .9rem var(--f-display); letter-spacing:.04em; border:1.5px solid var(--fg); color:var(--fg); background:transparent; border-radius:8px; padding:6px 12px; cursor:pointer}
+.demobtn[aria-pressed="true"]{background:var(--fg); color:var(--bg)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ref); outline-offset:2px}
+
+main{display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:12px}
+main.math-open{grid-template-columns:minmax(0,1fr) 360px 440px}
+@media (max-width: 1399px){ main.math-open{grid-template-columns:minmax(0,1fr) 360px} }
+@media (max-width: 999px){ main, main.math-open{grid-template-columns:minmax(0,1fr)} }
+.view{position:relative; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--sky); min-height:360px}
+@media (max-width: 999px){ .view{height:62vh} }
+.view canvas{display:block; touch-action:none}
+.kpis{position:absolute; left:10px; top:10px; display:grid; grid-template-columns:auto auto; gap:1px 10px; padding:8px 10px; border-radius:8px; background:color-mix(in srgb, var(--raise) 85%, transparent); border:1px solid var(--line); font:500 .76rem var(--f-mono); font-variant-numeric:tabular-nums}
+.kpis span:nth-child(odd){color:var(--muted)}
+.kpis .bad{color:var(--crit)} .kpis .mid{color:var(--warn)}
+.viewopts{position:absolute; right:10px; top:10px; display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; max-width:60%}
+.tog{font:500 .74rem var(--f-body); border:1px solid var(--line); background:color-mix(in srgb, var(--raise) 85%, transparent); color:var(--fg); border-radius:999px; padding:4px 10px; cursor:pointer}
+.tog[aria-pressed="true"]{border-color:var(--accent); color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)}
+.tags{position:absolute; inset:0; pointer-events:none}
+.tag{position:absolute; transform:translate(-50%,-50%); font:600 .7rem var(--f-body); color:var(--fg); background:color-mix(in srgb, var(--raise) 82%, transparent); border:1px solid var(--line); padding:1px 6px; border-radius:5px; white-space:nowrap}
+.tag.big{font:500 .7rem/1.35 var(--f-mono); text-align:center} .tag.big b{font:700 .78rem var(--f-display); color:var(--accent); margin-right:4px}
+.valves{position:absolute; left:10px; bottom:10px; display:grid; gap:4px; padding:8px 10px; border-radius:8px; background:color-mix(in srgb, var(--raise) 85%, transparent); border:1px solid var(--line); font:500 .74rem var(--f-mono)}
+.valves span b{display:inline-block; min-width:62px; text-align:center; border-radius:4px; padding:0 4px; margin-left:6px; background:var(--panel); color:var(--muted)}
+.valves span b.open{background:var(--ok); color:#fff}
+.caption{position:absolute; left:50%; bottom:84px; transform:translateX(-50%); width:min(780px, calc(100% - 40px)); background:rgba(14,13,11,.88); color:#f5f3ee; border-radius:10px; padding:10px 14px; display:flex; gap:12px; align-items:flex-start; font-size:.98rem; line-height:1.4; box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.caption b{font:700 .78rem var(--f-display); letter-spacing:.08em; color:#8ce99a; white-space:nowrap; padding-top:3px}
+
+.panel{display:flex; flex-direction:column; gap:10px; min-height:0; overflow:auto}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; display:grid; gap:10px}
+.card h3,.sec h3{margin:0; font:600 .74rem var(--f-display); letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+.profile{width:100%; height:150px; display:block}
+.mlcard{border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent)}
+.svgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+.svcell{background:var(--raise); border-radius:8px; padding:6px 8px; display:grid; gap:1px; border:1px solid transparent}
+.svcell small{font:600 .68rem var(--f-display); letter-spacing:.07em; text-transform:uppercase; color:var(--muted)}
+.svcell output{font:600 1.05rem var(--f-mono); font-variant-numeric:tabular-nums}
+.svcell span{font:400 .7rem var(--f-mono); color:var(--muted)}
+.svcell[data-s="crit"]{border-color:var(--crit)} .svcell[data-s="crit"] output{color:var(--crit)}
+.svcell[data-s="warn"]{border-color:var(--warn)}
+.svalarm{font:600 .78rem var(--f-body); color:var(--crit); min-height:1.1em}
+.svtrend{width:100%; height:200px; display:block}
+.trend{width:100%; height:180px; display:block}
+.tl{display:flex; flex-wrap:wrap; gap:4px 12px; font-size:.72rem; color:var(--muted)}
+.tl i{display:inline-block; width:14px; height:2px; margin-right:4px; vertical-align:middle}
+.tabs{display:grid; grid-template-columns:repeat(3,1fr); border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.tabs button{font:600 .8rem var(--f-display); letter-spacing:.05em; text-transform:uppercase; border:0; background:var(--raise); color:var(--muted); padding:8px 4px; cursor:pointer}
+.tabs button+button{border-left:1px solid var(--line)}
+.tabs button[aria-selected="true"]{background:var(--fg); color:var(--bg)}
+.sec{display:grid; gap:10px}
+.sl{display:grid; gap:2px}
+.sl .row{display:flex; align-items:center; gap:6px; font-size:.82rem}
+.sl .row label{flex:1; min-width:0}
+.sl output{font:500 .8rem var(--f-mono); font-variant-numeric:tabular-nums; white-space:nowrap}
+.sl input[type=range]{width:100%; accent-color:var(--accent)}
+.fx{font:italic 600 .72rem "Times New Roman",serif; border:1px solid var(--line); background:var(--raise); color:var(--muted); border-radius:5px; padding:1px 5px; cursor:pointer; line-height:1.3}
+.fx:hover{color:var(--hi); border-color:var(--hi)}
+.btnrow{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+.act{font:600 .8rem var(--f-body); padding:8px 6px; border-radius:8px; border:1px solid var(--line); background:var(--raise); color:var(--fg); cursor:pointer}
+.act[aria-pressed="true"]{border-color:var(--crit); color:var(--crit); box-shadow:inset 0 0 0 1px var(--crit)}
+.act.prim{border-color:var(--accent); color:var(--accent)}
+.act.prim[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink); box-shadow:none}
+.note{margin:0; font-size:.75rem; color:var(--muted)}
+.kv{display:flex; flex-wrap:wrap; gap:2px 12px; font-size:.78rem; color:var(--muted)}
+.kv b{font:500 .78rem var(--f-mono); color:var(--fg)}
+select{font:500 .8rem var(--f-body); padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--raise); color:var(--fg)}
+
+.math{display:none; flex-direction:column; gap:10px; min-height:0; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px}
+main.math-open .math{display:flex}
+@media (max-width: 1399px){
+  main.math-open .math{position:fixed; z-index:20; top:max(12px, env(safe-area-inset-top, 0px)); bottom:max(12px, env(safe-area-inset-bottom, 0px)); right:max(12px, env(safe-area-inset-right, 0px)); width:min(460px, calc(100vw - 24px)); box-shadow:0 12px 40px rgba(0,0,0,.28)}
+}
+.math-head{display:flex; align-items:center; gap:8px}
+.math-head h2{margin:0; font:700 1.15rem var(--f-display); flex:1}
+.x{border:1px solid var(--line); background:var(--raise); color:var(--fg); border-radius:6px; padding:3px 9px; cursor:pointer}
+.math p.lead{margin:0; font-size:.82rem; color:var(--muted)}
+.casc{display:flex; flex-wrap:wrap; align-items:center; gap:4px; font-size:.72rem}
+.casc .b{border:1px solid var(--line); background:var(--raise); border-radius:6px; padding:3px 7px; cursor:pointer; color:var(--fg); font:500 .72rem var(--f-body)}
+.casc .arr{color:var(--muted)}
+.casc .b.flash{border-color:var(--hi); color:var(--hi); background:var(--hi-bg)}
+.eq{border:1px solid var(--line); background:var(--raise); border-radius:10px; padding:10px 12px; display:grid; gap:6px; scroll-margin-top:8px; transition:border-color .3s, box-shadow .3s}
+.eq.flash{border-color:var(--hi); box-shadow:0 0 0 2px var(--hi-bg), 0 0 0 3px var(--hi)}
+.eq h4{margin:0; display:flex; align-items:baseline; gap:8px; font:600 .9rem var(--f-display); letter-spacing:.02em}
+.eq h4 small{font:500 .68rem var(--f-mono); color:var(--muted); letter-spacing:0}
+.eq .tex{overflow-x:auto; overflow-y:hidden; font-size:.95rem; padding:2px 0}
+.eq .tex mjx-container{margin:.3em 0 !important}
+.eq p{margin:0; font-size:.78rem; color:var(--muted)}
+.live{display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:3px 10px; font:400 .74rem var(--f-mono); font-variant-numeric:tabular-nums; border-top:1px dashed var(--line); padding-top:6px}
+.live span b{font-weight:500; color:var(--fg)} .live span{color:var(--muted)}
+.math .hl-ts,.math .hl-tcw,.math .hl-foul,.math .hl-bf,.math .hl-sp,.math .hl-tank{transition:fill .25s,color .25s}
+main.hl-ts .math .hl-ts, main.hl-tcw .math .hl-tcw, main.hl-foul .math .hl-foul, main.hl-bf .math .hl-bf, main.hl-sp .math .hl-sp, main.hl-tank .math .hl-tank{fill:var(--hi); color:var(--hi)}
+@media (prefers-reduced-motion: reduce){ .eq{transition:none} }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <h1>Sensor virtual con <em>machine learning</em> · evaporador de manzana</h1>
+    <p>°Brix, HMF y color estimados cada minuto con los instrumentos de siempre · respaldo del refractómetro · alerta temprana de calidad</p>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip" id="state" data-s="ok"><i></i><span id="stateTxt">En especificación</span></span>
+  <span class="clock" id="clock">t = 0 min</span>
+  <div class="seg" role="group" aria-label="Velocidad de simulación">
+    <button id="sp0" aria-pressed="false">Pausa</button>
+    <button id="sp10" aria-pressed="false">×10</button>
+    <button id="sp30" aria-pressed="true">×30</button>
+    <button id="sp120" aria-pressed="false">×120</button>
+  </div>
+  <button class="demobtn" id="demoBtn" aria-pressed="false">▶ Demo guiada</button>
+  <button class="mathbtn" id="mathBtn" aria-expanded="false" aria-controls="math"><span>∑</span>Ver la matemática</button>
+</header>
+
+<main id="main">
+  <section class="view" id="view" aria-label="Vista 3D del evaporador">
+    <div class="tags" id="tags"></div>
+    <div class="kpis">
+      <span>°Brix producto</span><span id="kB">—</span>
+      <span>Concentrado</span><span id="kP">—</span>
+      <span>Alimentación</span><span id="kF">—</span>
+      <span>Vapor vivo</span><span id="kS">—</span>
+      <span>Economía</span><span id="kE">—</span>
+      <span>HMF (11,2 °Brix)</span><span id="kH">—</span>
+      <span>Color A420</span><span id="kC">—</span>
+      <span>Aromas recuperados</span><span id="kA">—</span>
+    </div>
+    <div class="viewopts">
+      <button class="tog" data-view="all" aria-pressed="true">Vista general</button>
+      <button class="tog" data-view="first" aria-pressed="false">1er efecto y aromas</button>
+      <button class="tog" data-view="last" aria-pressed="false">5º efecto y condensador</button>
+      <button class="tog" id="tTags" aria-pressed="true">Etiquetas</button>
+    </div>
+    <div class="caption" id="cap" hidden><b id="capN"></b><span id="capT"></span></div>
+  </section>
+
+  <aside class="panel">
+    <div class="card">
+      <h3>Perfil del evaporador</h3>
+      <canvas class="profile" id="profile"></canvas>
+      <div class="tl"><span><i style="background:var(--c-brix)"></i>°Brix</span><span><i style="background:var(--c-t)"></i>temperatura</span><span><i style="background:var(--c-hmf)"></i>HMF acumulado</span></div>
+    </div>
+    <div class="card mlcard">
+      <h3>Sensor virtual · machine learning <button class="fx" data-card="eq-soft">f(x)</button></h3>
+      <div class="svgrid">
+        <div class="svcell" id="svB"><small>°Brix</small><output id="svBv">—</output><span id="svBr">—</span></div>
+        <div class="svcell" id="svH"><small>HMF mg/kg</small><output id="svHv">—</output><span id="svHr">—</span></div>
+        <div class="svcell" id="svC"><small>Color A420</small><output id="svCv">—</output><span id="svCr">—</span></div>
+      </div>
+      <div class="svalarm" id="svAlarm"></div>
+      <div class="btnrow"><button class="act" id="refrBtn" aria-pressed="false">Simular falla del refractómetro</button><button class="act prim" id="ctrlSV" aria-pressed="false">Controlar con el sensor virtual</button></div>
+      <canvas class="svtrend" id="svtrend"></canvas>
+      <div class="tl"><span><i style="background:var(--c-brix)"></i>refractómetro</span><span><i style="background:var(--accent)"></i>sensor virtual</span><span><i style="background:var(--muted)"></i>valor real (solo en simulación)</span><span><i style="background:var(--c-hmf)"></i>HMF virtual</span><span>● laboratorio cada 2 h</span></div>
+    </div>
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-op" aria-selected="true" aria-controls="sec-op">Operación</button>
+        <button role="tab" id="tab-dist" aria-selected="false" aria-controls="sec-dist">Perturbaciones</button>
+        <button role="tab" id="tab-q" aria-selected="false" aria-controls="sec-q">Calidad</button>
+      </div>
+      <div class="sec" id="sec-op" role="tabpanel">
+        <div class="sl" data-eq="energy,quality" data-hl="ts"><div class="row"><label for="ts">Temperatura del vapor vivo T<sub>s</sub></label><output id="vts"></output><button class="fx" data-card="eq-energy">f(x)</button></div><input type="range" id="ts" min="95" max="120" step="0.5" value="105"></div>
+        <div class="sl" data-eq="ctrl" data-hl="sp"><div class="row"><label for="bsp">Consigna de °Brix del concentrado</label><output id="vbsp"></output><button class="fx" data-card="eq-ctrl">f(x)</button></div><input type="range" id="bsp" min="60" max="72" step="0.5" value="70"></div>
+        <button class="act prim" id="auto" aria-pressed="true">Control de °Brix automático</button>
+        <div class="sl" data-eq="mass"><div class="row"><label for="fman">Alimentación manual</label><output id="vfman"></output><button class="fx" data-card="eq-mass">f(x)</button></div><input type="range" id="fman" min="10" max="28" step="0.5" value="20" disabled></div>
+        <p class="note">En automático, el controlador mueve la alimentación para mantener el °Brix del concentrado. En manual, la decides tú.</p>
+      </div>
+      <div class="sec" id="sec-dist" role="tabpanel" hidden>
+        <div class="sl" data-eq="energy,econ" data-hl="foul"><div class="row"><label for="foul">Ensuciamiento de los tubos</label><output id="vfoul"></output><button class="fx" data-card="eq-energy">f(x)</button></div><input type="range" id="foul" min="0" max="0.6" step="0.01" value="0"></div>
+        <button class="act" id="cip">Limpieza CIP (recupera U·A)</button>
+        <div class="sl" data-eq="bpe,energy" data-hl="tcw"><div class="row"><label for="tcw">Agua de enfriamiento del condensador</label><output id="vtcw"></output><button class="fx" data-card="eq-bpe">f(x)</button></div><input type="range" id="tcw" min="18" max="42" step="0.5" value="28"></div>
+        <div class="sl" data-eq="mass,ctrl" data-hl="bf"><div class="row"><label for="bf">°Brix del jugo de alimentación</label><output id="vbf"></output><button class="fx" data-card="eq-mass">f(x)</button></div><input type="range" id="bf" min="9" max="14" step="0.1" value="12"></div>
+      </div>
+      <div class="sec" id="sec-q" role="tabpanel" hidden>
+        <button class="act prim" id="cool" aria-pressed="true">Enfriador de concentrado en servicio</button>
+        <div class="sl" data-eq="quality" data-hl="tank"><div class="row"><label for="tank">Tiempo en el tanque de producto</label><output id="vtank"></output><button class="fx" data-card="eq-quality">f(x)</button></div><input type="range" id="tank" min="0.5" max="12" step="0.5" value="2"></div>
+        <div class="kv"><span>HMF límite <b>10 mg/kg</b></span><span>color límite <b>0,040</b></span></div>
+        <p class="note">Valores reconstituidos a 11,2 °Brix. Los límites son de referencia para la demo: HMF ≤ 10 mg/kg (código AIJN para manzana) y un índice de pardeamiento ilustrativo.</p>
+      </div>
+    </div>
+  </aside>
+
+  <aside class="math" id="math" aria-label="Matemática del modelo">
+    <div class="math-head"><h2>La matemática del evaporador</h2><button class="x" id="mathClose" aria-label="Cerrar">✕</button></div>
+    <p class="lead">El simulador resuelve estas ecuaciones cada 0,5 s de planta. Debajo de cada una están los valores de este instante. Al mover un control se resaltan en rosa la ecuación y el término que cambia.</p>
+    <div class="casc">
+      <button class="b" data-card="eq-soft">Sensor virtual</button><span class="arr">·</span><button class="b" data-card="eq-mass">Masa y sólidos</button><span class="arr">→</span>
+      <button class="b" data-card="eq-energy">Energía en cadena</button><span class="arr">→</span>
+      <button class="b" data-card="eq-bpe">EPE y ΔT útil</button><span class="arr">→</span>
+      <button class="b" data-card="eq-econ">Economía</button><span class="arr">·</span>
+      <button class="b" data-card="eq-ctrl">Control °Brix</button><span class="arr">·</span>
+      <button class="b" data-card="eq-quality">HMF y color</button><span class="arr">·</span>
+      <button class="b" data-card="eq-aroma">Aromas</button>
+    </div>
+    <section class="eq" id="eq-soft">
+      <h4>0 · Sensor virtual <small>ML entrenado con el historiador y el laboratorio</small></h4>
+      <div class="tex">\[ \hat B = b + \sum_j w_j\,\bar x_j, \qquad w_F \le 0,\ \ w_{\dot m_s} \ge 0,\ \ w_{\text{EPE}} \ge 0,\ \ w_{\text{MB}} \ge 0 \]
+      \[ B_{\text{EPE}} = \frac{100\,\varepsilon_5}{2{,}5 + \varepsilon_5},\ \ \varepsilon_5 = T_5 - T_{\text{sat}}(p_5), \qquad B_{\text{MB}} = \frac{F\,B_f}{F - E\,\dot m_s} \]
+      \[ \widehat{\text{HMF}} = k_0^{\text{evap}}\,z_{\text{evap}} + k_0^{\text{tq}}\,z_{\text{tq}} + b \quad \text{(caja gris)} \]
+      \[ z_{\text{evap}} = 0{,}112\sum_i M_i\,e^{-\frac{E_a}{R}\left(\frac{1}{T_i}-\frac{1}{T_{\text{ref}}}\right)} e^{3(x_i-0{,}12)}\,\frac{x_i}{x_0 F} \]</div>
+      <p>Cada minuto se leen los instrumentos (con ruido) y se promedian 5 min para el °Brix y 15 min para la calidad. El °Brix sale de una regresión lineal con restricciones de signo (elegida por validación cruzada entre los modelos que respetan la física); el HMF y el color, de un modelo de caja gris cuyas constantes cinéticas se calibraron con 120 análisis de laboratorio. El residuo contra cada análisis se vigila con un límite de ±3σ.</p>
+      <div class="live" id="lv-soft"></div>
+    </section>
+    <section class="eq" id="eq-mass">
+      <h4>1 · Balance de masa y de sólidos <small>por efecto, i = 1…5</small></h4>
+      <div class="tex">\[ L_i = L_{i-1} - V_i, \qquad L_0 = \class{hl-bf}{F} \]
+      \[ M_i\,\frac{dx_i}{dt} = L_{i-1}\,(x_{i-1} - x_i) + V_i\,x_i, \qquad x_0 = \frac{\class{hl-bf}{B_f}}{100} \]
+      \[ \text{Concentrado: } P = \frac{F\,x_0}{x_5} \]</div>
+      <p>El jugo pasa de un efecto al siguiente en el mismo sentido que el vapor (alimentación en paralelo). En cada efecto se evapora agua V<sub>i</sub> y los sólidos solubles se concentran. M<sub>i</sub> es la masa retenida en cada efecto, pequeña en película descendente.</p>
+      <div class="live" id="lv-mass"></div>
+    </section>
+    <section class="eq" id="eq-energy">
+      <h4>2 · Energía en cadena <small>cada vapor hierve el efecto siguiente</small></h4>
+      <div class="tex">\[ Q_i = \class{hl-foul}{U_iA_i}\,\big(T_{c,i} - T_i\big) \]
+      \[ T_{c,1} = \class{hl-ts}{T_s}, \qquad T_{c,i} = T_{v,i-1} \]
+      \[ V_i = \frac{Q_i + L_{i-1}\,c_p\,(T_{i-1} - T_i)}{\lambda} \]
+      \[ Q_{i+1} = V_i\,\lambda \]
+      \[ V_5\,\lambda = U A_c\,\big(T_{v,5} - \class{hl-tcw}{T_{cw}}\big) \]</div>
+      <p>El vapor vivo condensa en la calandria del 1<sup>er</sup> efecto. El vapor que sale del jugo del efecto i condensa en la calandria del efecto i+1, que trabaja a menor presión y por eso hierve a menor temperatura. El último vapor va al condensador. Q<sub>1</sub> se busca por bisección para cerrar el balance del condensador.</p>
+      <div class="live" id="lv-energy"></div>
+    </section>
+    <section class="eq" id="eq-bpe">
+      <h4>3 · Elevación del punto de ebullición <small>EPE y ΔT útil</small></h4>
+      <div class="tex">\[ T_i = T_{\text{sat}}(p_i) + \text{EPE}(B_i) \]
+      \[ \text{EPE} \approx 2{,}5\,\frac{B}{100 - B}\ \ [\text{K}] \]
+      \[ \textstyle\sum_i \Delta T_i = \class{hl-ts}{T_s} - \class{hl-tcw}{T_{cw}} - \sum_i \text{EPE}_i - \Delta T_c \]</div>
+      <p>El azúcar disuelto hace que el jugo hierva por encima del agua pura a la misma presión. A 12 °Brix son 0,3 °C, pero a 70 °Brix son casi 6 °C. Esos grados se pierden del ΔT disponible para transferir calor. Si sube la temperatura del agua de enfriamiento se pierde vacío y queda menos ΔT para los cinco efectos.</p>
+      <div class="live" id="lv-bpe"></div>
+    </section>
+    <section class="eq" id="eq-econ">
+      <h4>4 · Economía de vapor</h4>
+      <div class="tex">\[ E = \frac{\sum_i V_i}{\dot m_s}, \qquad \dot m_s = \frac{Q_1}{\lambda_s} \]</div>
+      <p>E se acerca al número de efectos, menos las pérdidas. Con 5 efectos, cada kg de vapor de caldera evapora unos 4 kg de agua del jugo. No llega a 5 porque el jugo entra más frío y porque la EPE reduce el ΔT útil.</p>
+      <div class="live" id="lv-econ"></div>
+    </section>
+    <section class="eq" id="eq-ctrl">
+      <h4>5 · Control del °Brix del concentrado <small>PI sobre la alimentación</small></h4>
+      <div class="tex">\[ e = B_{\text{med}} - \class{hl-sp}{B_{\text{sp}}} \]
+      \[ F = \bar F + K_p\,e + \frac{K_p}{T_i}\int e\,dt \]
+      \[ \tau_r\,\dot B_{\text{med}} = B_5 - B_{\text{med}}, \quad \tau_r = 20\ \text{s} \]</div>
+      <p>Si el concentrado sale con demasiados °Brix, el evaporador "sobra" y se puede alimentar más; si sale bajo, hay que alimentar menos. K<sub>p</sub> = 0,25 t/h por °Brix, T<sub>i</sub> = 2,5 min. La integral está acotada al rango de la bomba de alimentación (10–28 t/h) para que no se acumule cuando satura.</p>
+      <div class="live" id="lv-ctrl"></div>
+    </section>
+    <section class="eq" id="eq-quality">
+      <h4>6 · Daño térmico: HMF y color <small>Arrhenius</small></h4>
+      <div class="tex">\[ r(T, x) = k_0\,e^{-\frac{E_a}{R}\left(\frac{1}{T} - \frac{1}{T_{\text{ref}}}\right)}\,e^{\,3\,(x - 0{,}12)} \]
+      \[ \frac{dh_i}{dt} = \frac{L_{i-1}x_{i-1}}{M_i x_i}\,(h_{i-1} - h_i) + r_H(T_i, x_i) \]
+      \[ \text{HMF}_{11{,}2} = 0{,}112\,\Big[h_5 + r_H(\class{hl-tank}{T_{\text{tq}}}, x_5)\,\class{hl-tank}{t_{\text{tq}}}\Big] \]</div>
+      <p>h es el HMF por kg de sólidos, así que al concentrar no "aparece" HMF por quitar agua: solo el que se forma. Para el HMF, E<sub>a</sub> = 130 kJ/mol: cada 10 °C más, la velocidad se multiplica por unas 3 veces. El color (pardeamiento) sigue la misma forma con E<sub>a</sub> = 100 kJ/mol. Por eso se evapora al vacío, con poco tiempo de residencia, y el concentrado se enfría antes de ir al tanque.</p>
+      <div class="live" id="lv-quality"></div>
+    </section>
+    <section class="eq" id="eq-aroma">
+      <h4>7 · Recuperación de aromas <small>despojo en el 1<sup>er</sup> efecto</small></h4>
+      <div class="tex">\[ \eta_{\text{aroma}} = 1 - \exp\!\left(-\alpha\,\frac{V_1}{F}\right), \qquad \alpha \approx 9 \]</div>
+      <p>Los ésteres y aldehídos de la manzana son mucho más volátiles que el agua y salen casi todos con el primer vapor. Ese vapor va a una columna que concentra el aroma unas 150 veces; después se reincorpora al reconstituir el jugo.</p>
+      <div class="live" id="lv-aroma"></div>
+    </section>
+    <p class="note">U·A por efecto: 230, 220, 200, 170 y 120 kW/K (baja con la viscosidad). Condensador 300 kW/K. Masa retenida: 300, 250, 200, 150 y 120 kg. c<sub>p</sub> = 3,8 kJ/(kg·K), λ = 2330 kJ/kg. Alimentación a 60 °C.</p>
+  </aside>
+</main>
+
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'},startup:{typeset:true}};
+</script>
+<!-- MathJax 3.2.2 y three.js r128: copias locales (funciona sin internet) con respaldo en CDN -->
+<script src="vendor/mathjax/tex-svg.js" async onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js';s.async=true;document.head.appendChild(s);"></script>
+<script src="vendor/three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>')</script>
+<script src="vendor/OrbitControls.js"></script>
+<script>(window.THREE&&THREE.OrbitControls)||document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>')</script>
+<script>
+(function(){
+"use strict";
+// Evaporador de 5 efectos de película descendente para jugo de manzana: núcleo físico.
+const NE=5, LAMBDA=2330, CP=3.8, X_MAX=0.80; // kJ/kg, kJ/(kg·K) (cp medio del jugo)
+function tsat(P){ // °C, P en kPa (Antoine para agua, 1–200 kPa)
+  const mmHg=P*7.50062; return 1730.63/(8.07131-Math.log10(mmHg))-233.426; }
+function psat(T){ return Math.pow(10,8.07131-1730.63/(233.426+T))/7.50062; } // kPa
+function bpe(B){ return 2.5*B/(100-B); } // elevación del punto de ebullición [K], B en °Brix
+function makePlant(o){
+  const P=Object.assign({
+    Ts:105, Tcw:28, Bf:12, Tf:60, F:20000/3600, // vapor vivo °C, agua de condensador °C, °Brix y T alimentación, kg/s
+    UA:[230,220,200,170,120], UAc:300, foul:0, hold:[300,250,200,150,120], // kW/K, kg
+    Bsp:70, auto:true, Kp:0.07, Ti:150, Fmin:10000/3600, // caudal mínimo de mojado de los tubos de película descendente
+    Fmax:28000/3600,
+    tankCool:true, tankT:10, tankHours:2,
+    // cinética de daño térmico (por kg de sólidos solubles)
+    kH:0.18, EaH:130e3, kC:0.0011, EaC:100e3, Tref:90,
+    aroma:9
+  },o||{});
+  return P;
+}
+function makeState(P){
+  const x=[0.14,0.18,0.25,0.38,0.70];
+  return {x:x.slice(), h:[0,0,0,0,0], c:[0,0,0,0,0], T:[95,85,72,60,48], V:[0,0,0,0,0], L:[0,0,0,0,0], Q:[0,0,0,0,0], Pk:[0,0,0,0,0],
+    t:0, I:0, Bmeas:70, F:P.F, Fbias:P.F, hProd:0, cProd:0, steam:0, Qc:0, Pc:0, aroma:0};
+}
+const Rg=8.314;
+function rate(k0,Ea,T,x,Tref){ return k0*Math.exp(-Ea/Rg*(1/(T+273.15)-1/(Tref+273.15)))*Math.exp(3.0*(x-0.12)); }
+// Reparte el calor: con Q1 dado se recorre la cadena vapor → efecto 1 → … → efecto 5 → condensador.
+// Q1 se ajusta por bisección hasta que el condensador absorba exactamente el vapor del 5º efecto.
+function chain(P,S,Q1,UA,be){
+  const F=S.F; let Tc=P.Ts, Lprev=F, Tprev=P.Tf; const T=[],Tv=[],V=[],Q=[],L=[];
+  for(let i=0;i<NE;i++){
+    Q[i]=i===0?Q1:V[i-1]*LAMBDA;
+    T[i]=Tc-Q[i]/UA[i];
+    const sens=Lprev*CP*(Tprev-T[i]);
+    V[i]=Math.max(0,Math.min(Lprev*0.97,(Q[i]+sens)/LAMBDA));
+    L[i]=Lprev-V[i]; Tv[i]=T[i]-be[i]; Tc=Tv[i]; Tprev=T[i]; Lprev=L[i];
+  }
+  const res=V[NE-1]*LAMBDA-P.UAc*(Tv[NE-1]-P.Tcw);
+  return {T,Tv,V,Q,L,res};
+}
+function energy(P,S){
+  const foulK=[0.6,0.7,0.8,0.9,1.0]; // el ensuciamiento pesa más en los efectos concentrados
+  // U cae fuerte con la viscosidad cerca de 80 °Brix: la evaporación se autolimita de forma suave (sin topes duros)
+  const visc=x=>1/(1+Math.exp((x-X_MAX-0.03)/0.03));
+  const UA=P.UA.map((u,i)=>u*(1-P.foul*foulK[i])*visc(S.x[i]));
+  const be=S.x.map(v=>bpe(v*100));
+  let lo=0, hi=UA[0]*(P.Ts-P.Tcw), r=null;
+  for(let it=0;it<60;it++){ const m=(lo+hi)/2; r=chain(P,S,m,UA,be); if(r.res>0) hi=m; else lo=m; }
+  S.Q=r.Q; S.V=r.V; S.L=r.L; S.T=r.T; S.Tv=r.Tv; S.Pk=r.Tv.map(psat); S.UAe=UA; S.be=be;
+  S.steam=r.Q[0]/2240; S.Qc=r.V[NE-1]*LAMBDA; S.Pc=psat(r.Tv[NE-1]);
+}
+// Paso dinámico: sólidos, HMF y color por efecto (base sólidos), control de °Brix, tanque de producto
+function step(P,S,dt){
+  energy(P,S);
+  const F=S.F; let Lin=F, xin=P.Bf/100, hin=0, cin=0;
+  for(let i=0;i<NE;i++){
+    const M=P.hold[i], L=S.L[i], V=S.V[i], x=S.x[i];
+    const dx=(Lin*(xin-x)+V*x)/M;
+    // HMF y color por kg de sólidos: llegan con los sólidos y se forman según T y °Brix
+    const rh=rate(P.kH,P.EaH,S.T[i],x,P.Tref), rc=rate(P.kC,P.EaC,S.T[i],x,P.Tref);
+    const sol=M*x, solIn=Lin*xin;
+    const dh=(solIn*(hin-S.h[i]))/sol+rh, dc=(solIn*(cin-S.c[i]))/sol+rc;
+    S.x[i]=Math.min(0.85,Math.max(0.05,x+dx*dt)); S.h[i]+=dh*dt; S.c[i]+=dc*dt;
+    Lin=L; xin=S.x[i]; hin=S.h[i]; cin=S.c[i];
+  }
+  S.t+=dt;
+  // Refractómetro con retardo de 20 s
+  if(S.Brefr===undefined) S.Brefr=S.Bmeas;
+  S.Brefr+=(S.x[NE-1]*100-S.Brefr)*dt/20;           // refractómetro en línea
+  if(P.refrFalla) S.Brefr=P.refrValor;               // falla: queda clavado en el último valor
+  S.Bmeas=(P.Bext!=null)?P.Bext:S.Brefr;             // medición que usa el control
+  // Control PI del °Brix final con el caudal de alimentación
+  if(P.auto){ const e=S.Bmeas-P.Bsp; // si el °Brix está alto, se puede alimentar más
+    // PI en forma posicional con integral acotada al rango del actuador (anti-windup)
+    S.I=Math.max(P.Fmin-S.Fbias,Math.min(P.Fmax-S.Fbias,S.I+P.Kp/P.Ti*e*dt));
+    const Fc=S.Fbias+P.Kp*e+S.I;
+    S.F=Math.min(P.Fmax,Math.max(P.Fmin,Fc)); } else { S.F=P.F; }
+  // Enclavamiento de °Brix alto (independiente del control, activo también en manual): si el concentrado
+  // supera 76 °Brix se fuerza más alimentación, como en las plantas reales, para no quemar el producto.
+  S.ovr=S.ovr||0; const B5=S.x[NE-1]*100;
+  S.ovr=B5>76?Math.min(P.Fmax,S.ovr+0.03*(B5-76)*dt):Math.max(0,S.ovr-0.002*dt);
+  if(S.ovr>0) S.F=Math.min(P.Fmax,S.F+S.ovr);
+  // Producto: tiempo en tanque (enfriado o caliente)
+  const Tt=P.tankCool?P.tankT:S.T[NE-1];
+  const tt=P.tankHours*3600;
+  S.hProd=S.h[NE-1]+rate(P.kH,P.EaH,Tt,S.x[NE-1],P.Tref)*tt;
+  S.cProd=S.c[NE-1]+rate(P.kC,P.EaC,Tt,S.x[NE-1],P.Tref)*tt;
+  // Recuperación de aromas: fracción despojada en el 1er efecto
+  S.aroma=1-Math.exp(-P.aroma*S.V[0]/F);
+}
+
+
+/* ═════════════ Planta ═════════════ */
+const PL=makePlant({}); let ST=makeState(PL); ST.Fbias=PL.F;
+for(let i=0;i<3600;i++) step(PL,ST,0.5); ST.t=0; // arranque en estado estacionario
+const DT=0.5; // s de planta por paso
+const hist=[]; let histAcc=0;
+
+/* ═════════════ Escena 3D ═════════════ */
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const view=$('view');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+view.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,0.1,300);
+const controls=new THREE.OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.minDistance=3; controls.maxDistance=80; controls.maxPolarAngle=Math.PI*0.49;
+const VIEWS={all:{p:[6,13,30],t:[1.5,4.6,0]},first:{p:[-14,8.5,12],t:[-7.5,5,0]},last:{p:[17,8,12.5],t:[9.5,4.6,0]}};
+let camAnim=null;
+function goView(v,instant){ const V=VIEWS[v]; if(instant){camera.position.set(...V.p); controls.target.set(...V.t); controls.update(); camAnim=null;} else camAnim={from:{p:camera.position.clone(),t:controls.target.clone()},to:{p:new THREE.Vector3(...V.p),t:new THREE.Vector3(...V.t)},k:0};
+  document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===v))); }
+goView('all',true);
+scene.add(new THREE.HemisphereLight(0xffffff,0x5a6168,0.85));
+const sun=new THREE.DirectionalLight(0xffffff,0.85); sun.position.set(10,22,16); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-20,right:20,top:16,bottom:-8,near:1,far:70}); sun.shadow.bias=-0.0005; scene.add(sun);
+
+const sh=m=>{m.castShadow=true; m.receiveShadow=true; return m;};
+const steelMat=new THREE.MeshStandardMaterial({color:0xc7ced3,roughness:0.28,metalness:0.85});
+const darkMat=new THREE.MeshStandardMaterial({color:0x3a3f44,roughness:0.6,metalness:0.4});
+const floorMat=new THREE.MeshStandardMaterial({color:0xd5d8d6,roughness:0.95});
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,60),floorMat); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+let grid=null; function buildGrid(){ if(grid) scene.remove(grid); grid=new THREE.GridHelper(60,60,new THREE.Color(css('--grid1')),new THREE.Color(css('--grid2'))); grid.position.y=0.01; scene.add(grid); }
+function cyl(r,h,mat,x,y,z,seg=32,open=false){ const m=sh(new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg,1,open),mat)); m.position.set(x,y,z); scene.add(m); return m; }
+function sphere(r,mat,x,y,z){ const m=sh(new THREE.Mesh(new THREE.SphereGeometry(r,24,16),mat)); m.position.set(x,y,z); scene.add(m); return m; }
+function pipe(pts,r,mat){ const cp=new THREE.CurvePath(); for(let i=0;i<pts.length-1;i++) cp.add(new THREE.LineCurve3(pts[i],pts[i+1])); const m=sh(new THREE.Mesh(new THREE.TubeGeometry(cp,Math.max(16,pts.length*12),r,10,false),mat)); scene.add(m);
+  pts.slice(1,-1).forEach(p=>{ const e=new THREE.Mesh(new THREE.SphereGeometry(r*1.15,12,10),mat); e.position.copy(p); scene.add(e); }); return cp; }
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+
+// Efectos: calandria (película descendente) + separador
+const EX=[-8,-4,0,4,8], CAL_Y0=2.2, CAL_Y1=8.2;
+const shellMat=()=>new THREE.MeshPhysicalMaterial({color:0xd7dee3,roughness:0.12,metalness:0.4,transparent:true,opacity:0.28,side:THREE.DoubleSide,depthWrite:false});
+const effects=[];
+EX.forEach((x,i)=>{
+  const shell=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,CAL_Y1-CAL_Y0,40,1,true),shellMat()); shell.position.set(x,(CAL_Y0+CAL_Y1)/2,0); shell.renderOrder=5; scene.add(shell);
+  [CAL_Y0,CAL_Y1].forEach(y=>{ const fl=new THREE.Mesh(new THREE.TorusGeometry(0.63,0.035,8,40),steelMat); fl.rotation.x=Math.PI/2; fl.position.set(x,y,0); scene.add(fl); });
+  const head=sh(new THREE.Mesh(new THREE.SphereGeometry(0.62,32,16,0,Math.PI*2,0,Math.PI/2),steelMat)); head.position.set(x,CAL_Y1,0); head.scale.y=0.5; scene.add(head);
+  const cone=sh(new THREE.Mesh(new THREE.ConeGeometry(0.62,0.9,32,1,true),steelMat)); cone.rotation.x=Math.PI; cone.position.set(x,CAL_Y0-0.45,0); scene.add(cone);
+  // tubos internos y película
+  const film=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,CAL_Y1-CAL_Y0-0.1,24,1,true),new THREE.MeshStandardMaterial({color:0xf2e1a0,transparent:true,opacity:0.16,side:THREE.DoubleSide,depthWrite:false})); film.position.copy(shell.position); film.renderOrder=4; scene.add(film);
+  for(let k=0;k<7;k++){ const a=k/7*Math.PI*2; const tb=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,CAL_Y1-CAL_Y0,10,1,true),new THREE.MeshStandardMaterial({color:0xaab3b8,transparent:true,opacity:0.35,depthWrite:false})); tb.position.set(x+(k?0.32*Math.cos(a):0),(CAL_Y0+CAL_Y1)/2,(k?0.32*Math.sin(a):0)); scene.add(tb); }
+  // gotas cayendo
+  const ND=140; const dg=new THREE.BufferGeometry(); const dp=new Float32Array(ND*3); dg.setAttribute('position',new THREE.BufferAttribute(dp,3));
+  const dm=new THREE.PointsMaterial({color:0xf2e1a0,size:0.09,transparent:true,opacity:0.95}); const drops=new THREE.Points(dg,dm); scene.add(drops);
+  const ds=[...Array(ND)].map((_,k)=>({k:k%7,u:Math.random(),j:Math.random()}));
+  // separador
+  const sx=x+1.55;
+  const sep=sh(new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.75,3.4,40),steelMat)); sep.position.set(sx,3.1,0); scene.add(sep);
+  const sepTop=sh(new THREE.Mesh(new THREE.SphereGeometry(0.75,32,16,0,Math.PI*2,0,Math.PI/2),steelMat)); sepTop.position.set(sx,4.8,0); sepTop.scale.y=0.45; scene.add(sepTop);
+  const sepBot=sh(new THREE.Mesh(new THREE.ConeGeometry(0.75,0.8,32,1,true),steelMat)); sepBot.rotation.x=Math.PI; sepBot.position.set(sx,1.0,0); scene.add(sepBot);
+  const sight=new THREE.Mesh(new THREE.BoxGeometry(0.08,1.4,0.3),new THREE.MeshStandardMaterial({color:0xf2e1a0,roughness:0.2,emissive:0x000000})); sight.position.set(sx+0.76,2.4,0); scene.add(sight);
+  pipe([V3(x,CAL_Y0-0.9,0),V3(x,1.2,0),V3(sx-0.75,1.2,0)],0.18,steelMat); // del fondo de la calandria al separador
+  // patas
+  [[-0.5,-0.5],[0.5,-0.5],[-0.5,0.5],[0.5,0.5]].forEach(([dx,dz])=>{ const l=sh(new THREE.Mesh(new THREE.BoxGeometry(0.12,CAL_Y0-0.5,0.12),darkMat)); l.position.set(x+dx*1.2,(CAL_Y0-0.5)/2,dz*1.2); scene.add(l); });
+  // bomba de transferencia
+  const pump=sh(new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.35,20),new THREE.MeshStandardMaterial({color:0x2f6fa8,roughness:0.45,metalness:0.3}))); pump.rotation.x=Math.PI/2; pump.position.set(sx+0.9,0.35,0.9); scene.add(pump);
+  effects.push({x,sx,shell,film,drops,dp,dm,ds,sight});
+});
+// Ductos de vapor (efecto i → calandria i+1) y líquido (separador i → tope de calandria i+1)
+const pipeMat=steelMat, vapMat=new THREE.MeshStandardMaterial({color:0xe9ecef,roughness:0.3,metalness:0.6});
+const flows=[];
+function flowLine(curve,n,color,size){ const im=new THREE.InstancedMesh(new THREE.SphereGeometry(size,8,6),new THREE.MeshStandardMaterial({color,roughness:0.4,transparent:true,opacity:0.9}),n); scene.add(im); const F={curve,n,im,off:Math.random()}; flows.push(F); return F; }
+const vapFlows=[], liqFlows=[];
+for(let i=0;i<5;i++){
+  const sx=EX[i]+1.55, nx=i<4?EX[i+1]-0.62:12.0;
+  const pts=i<4?[V3(sx,5.1,0),V3(sx,9.6,0),V3(nx-0.6,9.6,0),V3(nx-0.6,7.4,0),V3(nx,7.4,0)]:[V3(sx,5.1,0),V3(sx,9.6,0),V3(12.6,9.6,0),V3(12.6,7.4,0)];
+  const c=pipe(pts,0.26,vapMat); vapFlows.push(flowLine(c,18,0xffffff,0.12));
+  const tx=i<4?EX[i+1]:null;
+  const lp=i<4?[V3(sx+0.9,0.35,0.9),V3(sx+1.1,0.35,1.1),V3(sx+1.1,9.0,1.1),V3(tx,9.0,1.1),V3(tx,8.55,0.2)]:[V3(sx+0.9,0.35,0.9),V3(sx+1.6,0.35,2.6),V3(12.2,0.6,2.6)];
+  const lc=pipe(lp,0.08,pipeMat); liqFlows.push(flowLine(lc,22,0xf2e1a0,0.07));
+}
+// Vapor vivo
+const steamMat=new THREE.MeshStandardMaterial({color:0xc9a227,roughness:0.4,metalness:0.5});
+const steamC=pipe([V3(-15,6.6,-1.6),V3(-9.4,6.6,-1.6),V3(-9.4,6.6,0),V3(-8.62,6.6,0)],0.2,steamMat); const steamFlow=flowLine(steamC,14,0xff8a3d,0.11);
+const boiler=sh(new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,3.2,32),new THREE.MeshStandardMaterial({color:0x9b3d2a,roughness:0.5,metalness:0.3}))); boiler.rotation.z=Math.PI/2; boiler.position.set(-16.5,1.4,-1.6); scene.add(boiler);
+pipe([V3(-15,2.2,-1.6),V3(-15,6.6,-1.6)],0.2,steamMat);
+// Alimentación
+const feedTank=cyl(1.2,3.2,steelMat,-13.2,1.6,3.2); const feedTop=sphere(1.2,steelMat,-13.2,3.2,3.2); feedTop.scale.y=0.3;
+const feedC=pipe([V3(-12,0.4,3.2),V3(-10.4,0.4,1.1),V3(-10.4,9.0,1.1),V3(-8,9.0,1.1),V3(-8,8.55,0.2)],0.08,pipeMat); const feedFlow=flowLine(feedC,26,0xf6eab8,0.07);
+// Condensador y vacío
+const cond=cyl(0.7,4.4,steelMat,12.6,5.2,0); const condTop=sphere(0.7,steelMat,12.6,7.4,0); condTop.scale.y=0.4;
+const cwMat=new THREE.MeshStandardMaterial({color:0x2f7ec2,roughness:0.4,metalness:0.4});
+const cwIn=pipe([V3(16,3.6,-1),V3(13.3,3.6,-1),V3(13.3,3.6,0)],0.12,cwMat), cwOut=pipe([V3(13.3,6.6,0),V3(13.3,6.6,-1),V3(16,6.6,-1)],0.12,cwMat);
+const cwF1=flowLine(cwIn,10,0x74c0fc,0.09), cwF2=flowLine(cwOut,10,0x4dabf7,0.09);
+const vac=sh(new THREE.Mesh(new THREE.BoxGeometry(1.0,0.7,0.8),new THREE.MeshStandardMaterial({color:0x2b8a3e,roughness:0.5}))); vac.position.set(15,0.35,1.6); scene.add(vac);
+pipe([V3(12.6,7.9,0),V3(12.6,8.6,0),V3(15,8.6,0),V3(15,0.7,1.6)],0.06,darkMat);
+pipe([V3(12.6,3.0,0),V3(12.6,0.5,0),V3(13.5,0.5,0)],0.08,pipeMat);
+// Enfriador y tanque de producto
+const cooler=sh(new THREE.Mesh(new THREE.BoxGeometry(0.6,1.4,1.0),new THREE.MeshStandardMaterial({color:0x5c7c99,roughness:0.4,metalness:0.6}))); cooler.position.set(12.5,0.9,2.6); scene.add(cooler);
+for(let k=0;k<9;k++){ const pl=new THREE.Mesh(new THREE.BoxGeometry(0.02,1.3,0.95),steelMat); pl.position.set(12.25+k*0.06,0.9,2.6); scene.add(pl); }
+const prodTank=cyl(1.0,2.6,steelMat,15.2,1.3,3.6); const ptTop=sphere(1.0,steelMat,15.2,2.6,3.6); ptTop.scale.y=0.3;
+const prodC=pipe([V3(12.8,0.6,2.6),V3(14.2,0.6,3.2)],0.08,pipeMat); const prodFlow=flowLine(prodC,8,0xc07a1c,0.07);
+// Columna de aromas
+const arCol=cyl(0.28,6.2,steelMat,-6.45,4.1,-2.6,24); const arTop=sphere(0.28,steelMat,-6.45,7.2,-2.6); arTop.scale.y=0.6;
+const arC=pipe([V3(-6.45,5.0,-0.4),V3(-6.45,5.0,-2.3)],0.1,vapMat); const arFlow=flowLine(arC,6,0xffffff,0.08);
+const arCond=sh(new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,1.2,16),new THREE.MeshStandardMaterial({color:0x7b5cb3,roughness:0.4,metalness:0.5}))); arCond.rotation.z=Math.PI/2; arCond.position.set(-5.6,7.4,-2.6); scene.add(arCond);
+const arTank=cyl(0.35,0.9,new THREE.MeshStandardMaterial({color:0x9c7bd0,roughness:0.3,metalness:0.3}),-4.8,0.45,-2.8,20);
+pipe([V3(-5.0,7.4,-2.6),V3(-4.8,7.4,-2.6),V3(-4.8,0.9,-2.8)],0.05,pipeMat);
+// Pasarela y barandas sobre las calandrias
+const deck=sh(new THREE.Mesh(new THREE.BoxGeometry(22,0.1,1.4),new THREE.MeshStandardMaterial({color:0x8d969c,roughness:0.7,metalness:0.5}))); deck.position.set(0.8,8.7,-1.5); scene.add(deck);
+for(let k=0;k<12;k++){ const p=sh(new THREE.Mesh(new THREE.BoxGeometry(0.08,8.7,0.08),new THREE.MeshStandardMaterial({color:0xe0a514,roughness:0.6}))); p.position.set(-10+k*2,4.35,-2.2); scene.add(p); }
+const rail=sh(new THREE.Mesh(new THREE.BoxGeometry(22,0.05,0.05),new THREE.MeshStandardMaterial({color:0xe0a514}))); rail.position.set(0.8,9.7,-2.2); scene.add(rail);
+
+/* ---- Etiquetas ---- */
+const TAGS=[];
+EX.forEach((x,i)=>TAGS.push({p:V3(x,i%2?11.6:10.4,0),id:'e'+i,cls:'big'}));
+TAGS.push({p:V3(-12.5,6.6,-1.6),id:'steam'},{p:V3(12.6,8.4,1.0),id:'cond'},{p:V3(-6.45,8.0,-2.6),id:'aroma'},{p:V3(15.2,3.4,3.6),id:'prod'},{p:V3(-13.2,4.1,3.2),id:'feed'});
+const tagsEl=$('tags'); TAGS.forEach(T=>{T.el=document.createElement('div'); T.el.className='tag'+(T.cls?' '+T.cls:''); tagsEl.appendChild(T.el);});
+let showTags=true; const _v=new THREE.Vector3();
+function placeTags(){ TAGS.forEach(T=>{ if(!showTags){T.el.hidden=true;return;} _v.copy(T.p).project(camera); const vis=_v.z<1&&Math.abs(_v.x)<1.02&&Math.abs(_v.y)<1.02; T.el.hidden=!vis; if(vis){T.el.style.left=((_v.x+1)/2*VW).toFixed(1)+'px'; T.el.style.top=((1-_v.y)/2*VH).toFixed(1)+'px';} }); }
+const fmt=(v,n=1)=>v.toFixed(n).replace('.',',');
+function updateTags(){
+  EX.forEach((x,i)=>{ const T=TAGS[i]; T.el.innerHTML='<b>E'+(i+1)+'</b>'+fmt(ST.x[i]*100)+' °Bx<br>'+fmt(ST.T[i],0)+' °C · '+fmt(ST.Pk[i],0)+' kPa'; });
+  const byId=id=>TAGS.find(t=>t.id===id).el;
+  byId('steam').textContent='Vapor vivo '+fmt(PL.Ts)+' °C · '+fmt(ST.steam*3.6,2)+' t/h';
+  byId('cond').textContent='Condensador '+fmt(ST.Tv[4])+' °C · '+fmt(ST.Pc)+' kPa';
+  byId('aroma').textContent='Aromas '+fmt(ST.aroma*100,0)+' % recuperado';
+  byId('prod').textContent='Concentrado '+fmt(ST.Bmeas)+' °Brix · '+fmt(ST.L[4]*3.6,2)+' t/h';
+  byId('feed').textContent='Jugo '+fmt(PL.Bf)+' °Brix · '+fmt(ST.F*3.6)+' t/h';
+}
+
+/* ---- Color del jugo según °Brix y pardeamiento ---- */
+const cA=new THREE.Color(0xf4e6a8), cB=new THREE.Color(0xc0791a), cBr=new THREE.Color(0x4a2408);
+function juiceColor(B,cIdx,out){ out=out||new THREE.Color(); const t=clamp((B-11)/(70-11),0,1); out.copy(cA).lerp(cB,t); return out.lerp(cBr,clamp(cIdx*0.112/0.05,0,1)*0.6); }
+
+const _m=new THREE.Matrix4(), cTmp=new THREE.Color();
+function updateScene(dtw,simDt){
+  effects.forEach((E,i)=>{
+    juiceColor(ST.x[i]*100,ST.c[i],cTmp); E.dm.color.copy(cTmp); E.film.material.color.copy(cTmp); E.sight.material.color.copy(cTmp);
+    const sp=0.15+0.5*(ST.L[i]/5.5); let p=0;
+    E.ds.forEach(d=>{ d.u=(d.u+dtw*sp*(0.8+0.4*d.j))%1; const a=d.k/7*Math.PI*2, r=d.k?0.32:0; const y=CAL_Y1-0.1-(CAL_Y1-CAL_Y0-0.2)*d.u;
+      E.dp[p++]=E.x+r*Math.cos(a)+(d.j-0.5)*0.05; E.dp[p++]=y; E.dp[p++]=r*Math.sin(a)+(d.j-0.5)*0.05; });
+    E.drops.geometry.attributes.position.needsUpdate=true;
+  });
+  const adv=(F,v)=>{ F.off=(F.off+dtw*v)%1; for(let k=0;k<F.n;k++){ const p=F.curve.getPointAt((k/F.n+F.off)%1); _m.makeTranslation(p.x,p.y,p.z); F.im.setMatrixAt(k,_m);} F.im.instanceMatrix.needsUpdate=true; };
+  vapFlows.forEach((F,i)=>adv(F,0.08+0.25*ST.V[i]));
+  liqFlows.forEach((F,i)=>{ adv(F,0.05+0.08*ST.L[i]); F.im.material.color.copy(juiceColor(ST.x[i]*100,ST.c[i],cTmp)); });
+  adv(steamFlow,0.08+0.25*ST.steam); adv(feedFlow,0.04+0.05*ST.F); feedFlow.im.material.color.copy(juiceColor(PL.Bf,0,cTmp));
+  adv(cwF1,0.25); adv(cwF2,0.25); adv(prodFlow,0.05+0.08*ST.L[4]); prodFlow.im.material.color.copy(juiceColor(ST.x[4]*100,ST.cProd,cTmp)); adv(arFlow,0.1+0.3*ST.aroma);
+}
+
+/* ═════════════ Tema y tamaño ═════════════ */
+function applyTheme(){ const sky=new THREE.Color(css('--sky')); scene.background=sky; scene.fog=new THREE.Fog(sky,45,110); floorMat.color.set(css('--floor')); buildGrid(); drawProfile(); drawTrend(); }
+const mq=window.matchMedia('(prefers-color-scheme: dark)'); mq.addEventListener&&mq.addEventListener('change',applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+let VW=1,VH=1;
+function resize(){const r=view.getBoundingClientRect(); VW=Math.max(1,r.width); VH=Math.max(1,r.height); renderer.setSize(VW,VH); camera.aspect=VW/VH; camera.updateProjectionMatrix(); [profC,svC].forEach(sizeCanvas); drawProfile(); drawTrend();}
+new ResizeObserver(resize).observe(view);
+
+/* ═════════════ Interfaz ═════════════ */
+let speed=30;
+const spB={0:$('sp0'),10:$('sp10'),30:$('sp30'),120:$('sp120')};
+function setSpeed(k){ speed=k; Object.entries(spB).forEach(([kk,x])=>x.setAttribute('aria-pressed',String(+kk===k))); }
+Object.entries(spB).forEach(([k,b])=>b.addEventListener('click',()=>setSpeed(+k)));
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>goView(b.dataset.view)));
+$('tTags').addEventListener('click',e=>{showTags=!showTags; e.currentTarget.setAttribute('aria-pressed',String(showTags));});
+const tabs=['op','dist','q'];
+tabs.forEach(t=>$('tab-'+t).addEventListener('click',()=>{tabs.forEach(u=>{$('tab-'+u).setAttribute('aria-selected',String(u===t)); $('sec-'+u).hidden=u!==t;});}));
+const main=$('main'), mathBtn=$('mathBtn');
+function setMath(open){ main.classList.toggle('math-open',open); mathBtn.setAttribute('aria-expanded',String(open)); setTimeout(resize,30); if(open) updateMath(true); }
+mathBtn.addEventListener('click',()=>setMath(!main.classList.contains('math-open')));
+$('mathClose').addEventListener('click',()=>setMath(false));
+const CAPTURE=new URLSearchParams(location.search).get('capture')==='1';
+let uiClock=0; const timers=[]; const later=(sec,fn,key)=>{ if(key){const i=timers.findIndex(t=>t.key===key); if(i>=0) timers.splice(i,1);} timers.push({due:uiClock+sec,fn,key}); };
+function runTimers(){ for(let i=timers.length-1;i>=0;i--) if(timers[i].due<=uiClock){const t=timers.splice(i,1)[0]; t.fn();} }
+function flashCard(c){ c.classList.add('flash'); later(2.4,()=>c.classList.remove('flash'),'f-'+c.id);
+  document.querySelectorAll('.casc .b').forEach(b=>{ if(b.dataset.card===c.id){ b.classList.add('flash'); later(2.4,()=>b.classList.remove('flash'),'c-'+c.id);} }); }
+const HLS=['ts','tcw','foul','bf','sp','tank'];
+function highlight(eqs,hl){ (eqs||'').split(',').filter(Boolean).forEach(k=>{const c=$('eq-'+k); if(c) flashCard(c);});
+  if(hl){ HLS.forEach(h=>main.classList.remove('hl-'+h)); main.classList.add('hl-'+hl); later(2.8,()=>main.classList.remove('hl-'+hl),'hl'); } }
+function showCard(id){ if(!main.classList.contains('math-open')) setMath(true); const c=$(id); c.scrollIntoView({behavior:CAPTURE?'auto':'smooth',block:'start'}); flashCard(c); }
+document.querySelectorAll('[data-card]').forEach(b=>b.addEventListener('click',()=>{ if(!main.classList.contains('math-open')) setMath(true); setTimeout(()=>showCard(b.dataset.card),60); }));
+document.querySelectorAll('.sl input').forEach(inp=>inp.addEventListener('input',()=>{const sl=inp.closest('.sl'); highlight(sl.dataset.eq,sl.dataset.hl);}));
+function bind(id,fmtF,fn){const el=$(id); const f=()=>{const v=+el.value; $('v'+id).textContent=fmtF(v); fn(v);}; el.addEventListener('input',f); f(); return el;}
+bind('ts',v=>fmt(v)+' °C · '+fmt(psat(v),0)+' kPa',v=>PL.Ts=v);
+bind('bsp',v=>fmt(v)+' °Brix',v=>PL.Bsp=v);
+bind('fman',v=>fmt(v)+' t/h',v=>{PL.F=v/3.6;});
+bind('foul',v=>fmt(v*100,0)+' % menos U·A',v=>PL.foul=v);
+bind('tcw',v=>fmt(v)+' °C',v=>PL.Tcw=v);
+bind('bf',v=>fmt(v)+' °Brix',v=>PL.Bf=v);
+bind('tank',v=>fmt(v)+' h',v=>PL.tankHours=v);
+function setAuto(on){ PL.auto=on; if(on){ ST.Fbias=ST.F; ST.I=0; } else { PL.F=ST.F; $('fman').value=(ST.F*3.6).toFixed(1); $('vfman').textContent=fmt(ST.F*3.6)+' t/h'; }
+  $('auto').setAttribute('aria-pressed',String(on)); $('auto').textContent=on?'Control de °Brix automático':'Control de °Brix en manual'; $('fman').disabled=on; highlight('ctrl','sp'); }
+$('auto').addEventListener('click',()=>setAuto(!PL.auto));
+function setCool(on){ PL.tankCool=on; $('cool').setAttribute('aria-pressed',String(on)); $('cool').textContent=on?'Enfriador de concentrado en servicio':'Enfriador fuera de servicio (tanque a la T del 5º efecto)'; highlight('quality','tank'); }
+$('cool').addEventListener('click',()=>setCool(!PL.tankCool));
+function setSlider(id,v){ const el=$(id); const sec=el.closest('.sec'); if(sec&&sec.hidden){ $('tab-'+sec.id.replace('sec-','')).click(); } el.value=v; el.dispatchEvent(new Event('input')); }
+$('cip').addEventListener('click',()=>{ setSlider('foul',0); });
+
+/* ═════════════ Gráficos ═════════════ */
+const profC=$('profile'), pctx=profC.getContext('2d'), trendC=$('svtrend'), tctx=null;
+function sizeCanvas(c){const r=c.getBoundingClientRect(); if(!r.width) return; const d=Math.min(window.devicePixelRatio||1,2); c.width=Math.round(r.width*d); c.height=Math.round(r.height*d); c.getContext('2d').setTransform(d,0,0,d,0,0);}
+function drawProfile(){
+  const w=profC.clientWidth,h=profC.clientHeight; if(!w) return; pctx.clearRect(0,0,w,h);
+  const L=30,R=34,T=10,B=h-34, gw=(w-L-R)/5; pctx.font='10px "JetBrains Mono", monospace';
+  const yB=b=>B-b/80*(B-T), yT=t=>B-(t-20)/(110-20)*(B-T);
+  pctx.strokeStyle=css('--line'); pctx.fillStyle=css('--muted'); pctx.lineWidth=1;
+  [0,20,40,60,80].forEach(b=>{const y=yB(b); pctx.beginPath(); pctx.moveTo(L,y); pctx.lineTo(w-R,y); pctx.stroke(); pctx.textAlign='right'; pctx.fillText(b,L-4,y+3);});
+  pctx.textAlign='left'; [20,50,80,110].forEach(t=>pctx.fillText(t+'°',w-R+4,yT(t)+3));
+  for(let i=0;i<5;i++){ const x0=L+i*gw+gw*0.22, bw=gw*0.56; const b=ST.x[i]*100; pctx.fillStyle='#'+juiceColor(b,ST.c[i]).getHexString(); pctx.fillRect(x0,yB(b),bw,B-yB(b));
+    pctx.fillStyle=css('--fg'); pctx.textAlign='center'; pctx.fillText(fmt(b),x0+bw/2,yB(b)-4); pctx.fillStyle=css('--muted'); pctx.fillText('E'+(i+1),x0+bw/2,B+12);
+    pctx.fillStyle=css('--c-hmf'); pctx.fillText(fmt(ST.h[i]*0.112,1),x0+bw/2,B+25); }
+  pctx.strokeStyle=css('--c-t'); pctx.lineWidth=2; pctx.beginPath(); for(let i=0;i<5;i++){ const x=L+i*gw+gw/2, y=yT(ST.T[i]); i?pctx.lineTo(x,y):pctx.moveTo(x,y);} pctx.stroke();
+  pctx.fillStyle=css('--c-t'); for(let i=0;i<5;i++){ pctx.beginPath(); pctx.arc(L+i*gw+gw/2,yT(ST.T[i]),3.5,0,Math.PI*2); pctx.fill(); }
+  pctx.fillStyle=css('--muted'); pctx.textAlign='left'; pctx.fillStyle=css('--c-hmf'); pctx.fillText('HMF',2,B+25);
+}
+function drawTrend(){ return;
+  const w=trendC.clientWidth,h=trendC.clientHeight; if(!w) return; tctx.clearRect(0,0,w,h);
+  const L=30,R=6,gap=12,h1=(h-gap-14)/2, t1=ST.t/60, t0=t1-60, X=t=>L+(t-t0)/60*(w-L-R); tctx.font='10px "JetBrains Mono", monospace';
+  const plot=(top,lo,hi,ticks,series)=>{ const Y=v=>top+(1-(v-lo)/(hi-lo))*h1;
+    tctx.strokeStyle=css('--line'); tctx.fillStyle=css('--muted'); tctx.lineWidth=1; tctx.textAlign='right';
+    ticks.forEach(v=>{const y=Y(v); tctx.beginPath(); tctx.moveTo(L,y); tctx.lineTo(w-R,y); tctx.stroke(); tctx.fillText(v,L-4,y+3);});
+    series.forEach(([k,col,dash])=>{ tctx.strokeStyle=css(col); tctx.setLineDash(dash?[4,3]:[]); tctx.lineWidth=dash?1.3:1.8; tctx.beginPath(); let s=false; for(const p of hist){ if(p.t<t0) continue; const y=Y(clamp(p[k],lo,hi)); s?tctx.lineTo(X(p.t),y):tctx.moveTo(X(p.t),y); s=true;} tctx.stroke(); }); tctx.setLineDash([]); };
+  plot(6,55,80,[55,60,65,70,75,80],[['sp','--ref',true],['b','--c-brix']]);
+  plot(2+h1+gap,0,30,[0,10,20,30],[['f','--c-f'],['hmf','--c-hmf']]);
+  tctx.fillStyle=css('--muted'); tctx.textAlign='center'; for(let m=Math.ceil(t0/10)*10;m<=t1;m+=10) if(m>=0) tctx.fillText(m+' min',X(m),h-2);
+}
+
+/* ═════════════ Valores en vivo ═════════════ */
+const cells=pairs=>pairs.map(([k,v])=>'<span>'+k+' = <b>'+v+'</b></span>').join('');
+const arr=(a,f,n=1)=>a.map(v=>fmt(f?f(v):v,n)).join(' · ');
+function updateMath(force){
+  if(!main.classList.contains('math-open')&&!force) return;
+  if(svOut) $('lv-soft').innerHTML=cells([['B_EPE',fmt(svOut.bEPE,1)+' °Bx'],['B_MB',fmt(svOut.bMB,1)+' °Bx'],['°Brix virtual',fmt(svOut.brix,2)],['refractómetro',fmt(ST.Brefr,2)+(PL.refrFalla?' (falla)':'')],['z_evap · z_tq (HMF)',fmt(svOut.zh[0],1)+' · '+fmt(svOut.zh[1],1)],['k0 evap · k0 tq',fmt(SV.hmf.coef[0],3)+' · '+fmt(SV.hmf.coef[1],3)],['HMF virtual',fmt(svOut.hmf,2)+' mg/kg'],['último residuo lab',lastLab?fmt(lastLab.res,2)+' (límite ±'+fmt(3*SIGMA_RES,2)+')':'—'],['control usa',PL.ctrlSV?'sensor virtual':'refractómetro']]);
+  const evap=ST.V.reduce((a,b)=>a+b,0);
+  $('lv-mass').innerHTML=cells([['F',fmt(ST.F*3.6)+' t/h'],['B_f',fmt(PL.Bf)+' °Brix'],['°Brix por efecto',arr(ST.x,v=>v*100)],['V_i [t/h]',arr(ST.V,v=>v*3.6,2)],['L_i [t/h]',arr(ST.L,v=>v*3.6,2)],['P',fmt(ST.L[4]*3.6,2)+' t/h']]);
+  $('lv-energy').innerHTML=cells([['T_s',fmt(PL.Ts)+' °C'],['U·A [kW/K]',arr(ST.UAe,null,0)],['Q_i [kW]',arr(ST.Q,null,0)],['T_i [°C]',arr(ST.T)],['ΔT_i [K]',arr(ST.Q.map((q,i)=>q/ST.UAe[i]))],['T_cw',fmt(PL.Tcw)+' °C']]);
+  const sumBpe=ST.be.reduce((a,b)=>a+b,0);
+  $('lv-bpe').innerHTML=cells([['EPE_i [K]',arr(ST.be,null,2)],['Σ EPE',fmt(sumBpe,1)+' K'],['p_i [kPa]',arr(ST.Pk,null,0)],['ΣΔT útil',fmt(ST.Q.reduce((s,q,i)=>s+q/ST.UAe[i],0))+' K'],['ΔT condensador',fmt(ST.Tv[4]-PL.Tcw)+' K']]);
+  $('lv-econ').innerHTML=cells([['Σ V',fmt(evap*3.6,2)+' t/h'],['vapor vivo',fmt(ST.steam*3.6,2)+' t/h'],['E',fmt(evap/ST.steam,2)+' kg/kg'],['calor total',fmt(ST.Q[0]/1000,2)+' MW']]);
+  $('lv-ctrl').innerHTML=cells([['modo',PL.auto?'automático':'manual'],['B_sp',fmt(PL.Bsp)+' °Brix'],['B_med',fmt(ST.Bmeas,2)+' °Brix'],['e',fmt(ST.Bmeas-PL.Bsp,2)],['F',fmt(ST.F*3.6,2)+' t/h'],['término integral',fmt(ST.I*3.6,2)+' t/h']]);
+  $('lv-quality').innerHTML=cells([['HMF por efecto (11,2 °Bx)',arr(ST.h,v=>v*0.112,2)+' mg/kg'],['tanque',(PL.tankCool?fmt(PL.tankT,0):fmt(ST.T[4]))+' °C · '+fmt(PL.tankHours)+' h'],['HMF producto',fmt(ST.hProd*0.112,2)+' mg/kg'],['color A420',fmt(ST.cProd*0.112,3)],['r_H(E1) / r_H(E5)',fmt(rate(PL.kH,PL.EaH,ST.T[0],ST.x[0],PL.Tref),3)+' / '+fmt(rate(PL.kH,PL.EaH,ST.T[4],ST.x[4],PL.Tref),3)+' mg/(kg·s)']]);
+  $('lv-aroma').innerHTML=cells([['V_1 / F',fmt(ST.V[0]/ST.F,3)],['η aroma',fmt(ST.aroma*100,0)+' %']]);
+}
+
+
+/* ═════════════ Sensor virtual (ML) ═════════════ */
+// Modelo entrenado en notebook/entrenamiento_sensor_virtual.ipynb y exportado a JSON.
+const SV={"filtro_min":5,"filtro_calidad_min":15,"Tref":90.0,"EaH":130000.0,"EaC":100000.0,"masas_diseno":[300,250,200,150,120],"economia":4.0,"brix":{"tipo":"lineal","modelo":"Lineal con restricciones de signo","rasgos":["Ts","T1","T2","T3","T4","T5","P1","P2","P3","P4","P5","F_th","vapor_th","Bf","Tcw","Brix_EPE","Brix_MB"],"coef":[0.004575054572267452,0.42409949322524054,-0.4164620940159795,-0.542605577079381,0.10146613692299469,2.975940611532424,0.2732610093882253,-0.17474717158773986,-0.10308553790051271,-0.49640304755519826,2.633112223666277,-2.6401870232392834,4.799770983862966,0.6826152076795842,-3.280831485315876,0.2498859825252139,2.3828971497721838e-23],"ordenada":60.109586624712065},"hmf":{"rasgos":["zevap_H","ztq_H"],"coef":[0.1615898730907121,0.18782570041287106],"ordenada":0.4422178634486622},"color":{"rasgos":["zevap_C","ztq_C"],"coef":[0.0009688898717284423,0.0011444946234402825],"ordenada":0.003100349236279852}};
+const SENS=['Ts','T1','T2','T3','T4','T5','P1','P2','P3','P4','P5','F_th','vapor_th','Bf','Tcw'];
+const RUIDO_SV={T:0.2,P:0.3,F:0.01,steam:0.02,Bf:0.1,Tcw:0.2};
+const SIGMA_RES=0.577; // desvío de los residuos de HMF en la prueba (notebook, sección 8)
+const gs=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+const tsatSV=P=>1730.63/(8.07131-Math.log10(P*7.50062))-233.426;
+const arrSV=(T,Ea)=>Math.exp(-Ea/8.314*(1/(T+273.15)-1/(SV.Tref+273.15)));
+let svBuf=[], svAcc=0, labAcc=0, svOut=null, svHist=[], labPts=[], lastLab=null;
+// lectura de los instrumentos (con el mismo ruido que el historiador del entrenamiento)
+function leerSensores(){ const r={Ts:PL.Ts+RUIDO_SV.T*gs()}; ST.T.forEach((v,i)=>r['T'+(i+1)]=v+RUIDO_SV.T*gs()); ST.Pk.forEach((v,i)=>r['P'+(i+1)]=v+RUIDO_SV.P*gs());
+  r.F_th=ST.F*3.6*(1+RUIDO_SV.F*gs()); r.vapor_th=ST.steam*3.6*(1+RUIDO_SV.steam*gs()); r.Bf=PL.Bf+RUIDO_SV.Bf*gs(); r.Tcw=PL.Tcw+RUIDO_SV.Tcw*gs(); return r; }
+const media=(buf,n)=>{ const b=buf.slice(-n); const m={}; SENS.forEach(k=>m[k]=b.reduce((s,r)=>s+r[k],0)/b.length); return m; };
+function arbolesSV(mj,x){ let s=mj.base; for(const a of mj.arboles){ let i=0; while(!a.h[i]) i=x[a.f[i]]<=a.t[i]?a.l[i]:a.r[i]; s+=a.v[i]; } return s; }
+function calidadSV(q,Ea){ // rasgos de caja gris (igual que rasgos_calidad del notebook)
+  const x0=q.Bf/100, Fk=q.F_th/3.6; let z=0;
+  for(let i=1;i<=5;i++){ const e=Math.min(20,Math.max(0,q['T'+i]-tsatSV(q['P'+i]))); const x=Math.min(0.8,Math.max(x0,e/(2.5+e))); z+=SV.masas_diseno[i-1]*arrSV(q['T'+i],Ea)*Math.exp(3*(x-0.12))*x/(x0*Fk); }
+  const e5=q.T5-tsatSV(q.P5), x5=Math.min(0.8,Math.max(0.5,e5/(2.5+e5))), Ttq=PL.tankCool?10:q.T5;
+  return [0.112*z, 0.112*arrSV(Ttq,Ea)*Math.exp(3*(x5-0.12))*PL.tankHours*3600];
+}
+function evaluarSV(){
+  const m=media(svBuf,SV.filtro_min), q=media(svBuf,SV.filtro_calidad_min);
+  const e5=m.T5-tsatSV(m.P5); const bEPE=100*e5/(2.5+e5), bMB=m.F_th*m.Bf/Math.max(1,m.F_th-SV.economia*m.vapor_th);
+  const xb=[...SENS.map(k=>m[k]),bEPE,bMB];
+  const brix=SV.brix.ordenada+xb.reduce((acc,v,i)=>acc+v*SV.brix.coef[i],0); // lineal con restricciones de signo
+  const zh=calidadSV(q,SV.EaH), zc=calidadSV(q,SV.EaC);
+  const hmf=SV.hmf.ordenada+SV.hmf.coef[0]*zh[0]+SV.hmf.coef[1]*zh[1], col=SV.color.ordenada+SV.color.coef[0]*zc[0]+SV.color.coef[1]*zc[1];
+  svOut={brix,hmf,col,bEPE,bMB,zh,zc};
+}
+function svTick(dt){ // se llama en cada paso de planta
+  svAcc+=dt; labAcc+=dt;
+  if(svAcc>=60){ svAcc=0; svBuf.push(leerSensores()); if(svBuf.length>30) svBuf.shift(); evaluarSV();
+    svHist.push({t:ST.t/60,refr:ST.Brefr,virt:svOut.brix,real:ST.x[4]*100,hmf:svOut.hmf,hmfReal:ST.hProd*0.112,col:svOut.col,colReal:ST.cProd*0.112});
+    while(svHist.length&&svHist[0].t<ST.t/60-360) svHist.shift(); }
+  if(labAcc>=7200){ labAcc=0; const v=ST.hProd*0.112*(1+0.05*gs()); lastLab={t:ST.t/60,v,res:v-(svOut?svOut.hmf:v),col:ST.cProd*0.112*(1+0.05*gs())}; labPts.push(lastLab); while(labPts.length&&labPts[0].t<ST.t/60-360) labPts.shift(); }
+  if(PL.ctrlSV&&svOut) PL.Bext=svOut.brix; else PL.Bext=null;
+}
+function svPrecalentar(){ svBuf=[]; for(let i=0;i<30;i++) svBuf.push(leerSensores()); evaluarSV(); svHist=[]; labPts=[]; lastLab=null; svAcc=0; labAcc=0; }
+
+const svC=$('svtrend'), svx=svC.getContext('2d');
+function drawSV(){
+  const w=svC.clientWidth,h=svC.clientHeight; if(!w) return; svx.clearRect(0,0,w,h);
+  const L=34,Rm=6,gap=12,h1=(h-gap-14)/2, t1=ST.t/60, t0=t1-360, X=t=>L+(t-t0)/360*(w-L-Rm); svx.font='10px "JetBrains Mono", monospace';
+  const plot=(top,lo,hi,ticks,series,dots)=>{ const Y=v=>top+(1-(v-lo)/(hi-lo))*h1;
+    svx.strokeStyle=css('--line'); svx.fillStyle=css('--muted'); svx.lineWidth=1; svx.textAlign='right';
+    ticks.forEach(v=>{const y=Y(v); svx.beginPath(); svx.moveTo(L,y); svx.lineTo(w-Rm,y); svx.stroke(); svx.fillText(v,L-4,y+3);});
+    series.forEach(([k,col,lw,dash])=>{ svx.strokeStyle=col; svx.lineWidth=lw; svx.setLineDash(dash?[3,3]:[]); svx.beginPath(); let s=false; for(const p of svHist){ if(p.t<t0||p[k]==null) continue; const y=Y(Math.min(hi,Math.max(lo,p[k]))); s?svx.lineTo(X(p.t),y):svx.moveTo(X(p.t),y); s=true;} svx.stroke(); }); svx.setLineDash([]);
+    if(dots){ svx.fillStyle=css('--fg'); dots.forEach(p=>{ if(p.t<t0) return; svx.beginPath(); svx.arc(X(p.t),Y(Math.min(hi,p.v)),3.5,0,Math.PI*2); svx.fill(); }); } };
+  plot(4,54,76,[55,60,65,70,75],[['real',css('--muted'),1,true],['refr',css('--c-brix'),1.6],['virt',css('--accent'),2]]);
+  svx.strokeStyle=css('--crit'); svx.setLineDash([2,3]); const yl=4+h1+gap+(1-10/14)*h1; svx.beginPath(); svx.moveTo(L,yl); svx.lineTo(w-Rm,yl); svx.stroke(); svx.setLineDash([]);
+  plot(4+h1+gap,0,14,[0,5,10],[['hmfReal',css('--muted'),1,true],['hmf',css('--c-hmf'),2]],labPts);
+  svx.fillStyle=css('--muted'); svx.textAlign='left'; svx.fillText('°Bx',2,10); svx.fillText('HMF',2,4+h1+gap+8);
+  svx.textAlign='center'; for(let m=Math.ceil(t0/60)*60;m<=t1;m+=60) if(m>=0) svx.fillText((m/60)+' h',X(m),h-2);
+}
+function renderSV(){
+  if(!svOut) return; const real=ST.x[4]*100, disc=Math.abs(svOut.brix-ST.Brefr);
+  $('svBv').textContent=fmt(svOut.brix,1); $('svBr').textContent='refract. '+fmt(ST.Brefr,1)+(PL.refrFalla?' (falla)':'')+' · real '+fmt(real,1);
+  $('svB').dataset.s=disc>2.5?'crit':'';
+  $('svHv').textContent=fmt(svOut.hmf,2); $('svHr').textContent=(lastLab?'lab '+fmt(lastLab.v,2)+' · ':'')+'real '+fmt(ST.hProd*0.112,2); $('svH').dataset.s=svOut.hmf>10?'crit':svOut.hmf>7?'warn':'';
+  $('svCv').textContent=fmt(svOut.col,3); $('svCr').textContent='real '+fmt(ST.cProd*0.112,3); $('svC').dataset.s=svOut.col>0.04?'crit':svOut.col>0.032?'warn':'';
+  const al=[]; if(disc>2.5) al.push('⚠ Discrepancia refractómetro vs sensor virtual: '+fmt(disc,1)+' °Brix'); if(lastLab&&Math.abs(lastLab.res)>3*SIGMA_RES) al.push('⚠ El último análisis sale de ±3σ: recalibrar');
+  if(svOut.col>0.04||svOut.hmf>10) al.push('⚠ Calidad fuera de especificación (anticipado por el sensor virtual)');
+  $('svAlarm').textContent=al.join(' · ');
+}
+function setRefr(on){ PL.refrFalla=on; PL.refrValor=ST.Brefr; $('refrBtn').setAttribute('aria-pressed',String(on)); $('refrBtn').textContent=on?'Refractómetro en falla (clavado)':'Simular falla del refractómetro'; highlight('soft,ctrl'); }
+function setCtrlSV(on){ PL.ctrlSV=on; if(on){ ST.Fbias=ST.F; ST.I=0; } $('ctrlSV').setAttribute('aria-pressed',String(on)); $('ctrlSV').textContent=on?'Control usando el sensor virtual':'Controlar con el sensor virtual'; highlight('soft,ctrl'); }
+$('refrBtn').addEventListener('click',()=>setRefr(!PL.refrFalla));
+$('ctrlSV').addEventListener('click',()=>setCtrlSV(!PL.ctrlSV));
+/* ═════════════ Bucle ═════════════ */
+const clockT=new THREE.Clock(); let acc=0, uiAcc=0, mathAcc=0, gAcc=0;
+function frame(dtFixed){
+  const dtw=dtFixed!==undefined?dtFixed:Math.min(clockT.getDelta(),0.1);
+  uiClock+=dtw; runTimers();
+  acc+=dtw*speed; let n=0; while(acc>=DT&&n<400){ step(PL,ST,DT); svTick(DT); acc-=DT; n++; histAcc+=DT; if(histAcc>=10){ histAcc=0; hist.push({t:ST.t/60,b:ST.Bmeas,sp:PL.Bsp,f:ST.F*3.6,hmf:ST.hProd*0.112}); while(hist.length&&hist[0].t<ST.t/60-62) hist.shift(); } }
+  if(n>=400) acc=0;
+  const simDt=n*DT;
+  updateScene(dtw,simDt);
+  if(camAnim){ camAnim.k=Math.min(1,camAnim.k+dtw/1.4); const e=camAnim.k<0.5?2*camAnim.k*camAnim.k:1-Math.pow(-2*camAnim.k+2,2)/2; camera.position.lerpVectors(camAnim.from.p,camAnim.to.p,e); controls.target.lerpVectors(camAnim.from.t,camAnim.to.t,e); if(camAnim.k>=1) camAnim=null; }
+  controls.update(); renderer.render(scene,camera); placeTags();
+  uiAcc+=dtw; mathAcc+=dtw; gAcc+=dtw;
+  if(gAcc>0.2){ gAcc=0; drawProfile(); drawSV(); renderSV(); updateTags(); }
+  if(uiAcc>0.2){ uiAcc=0; const evap=ST.V.reduce((a,b)=>a+b,0); const hm=ST.hProd*0.112, col=ST.cProd*0.112, dB=ST.Bmeas-PL.Bsp;
+    $('kB').textContent=fmt(ST.Bmeas,1)+' °Brix'; $('kB').className=Math.abs(dB)>2?'bad':Math.abs(dB)>0.8?'mid':'';
+    $('kP').textContent=fmt(ST.L[4]*3.6,2)+' t/h'; $('kF').textContent=fmt(ST.F*3.6,1)+' t/h'+(PL.auto?'':' (manual)');
+    $('kS').textContent=fmt(ST.steam*3.6,2)+' t/h'; $('kE').textContent=fmt(evap/ST.steam,2)+' kg/kg';
+    $('kH').textContent=fmt(hm,1)+' mg/kg'; $('kH').className=hm>10?'bad':hm>7?'mid':'';
+    $('kC').textContent=fmt(col,3); $('kC').className=col>0.04?'bad':col>0.032?'mid':'';
+    $('kA').textContent=fmt(ST.aroma*100,0)+' %';
+    const st=$('state'); let s='ok',t='En especificación';
+    if(hm>10){s='crit'; t='HMF fuera de especificación';} else if(col>0.04){s='crit'; t='Color fuera de especificación';} else if(dB<-2){s='warn'; t='°Brix bajo';} else if(dB>2){s='warn'; t='°Brix alto';} else if(hm>7||col>0.032){s='warn'; t='Calidad cerca del límite';}
+    st.dataset.s=s; $('stateTxt').textContent=t; $('clock').textContent='t = '+Math.floor(ST.t/60)+' min de planta';
+  }
+  if(mathAcc>0.2){ mathAcc=0; updateMath(); }
+  demoTick(simDt);
+  if(!CAPTURE) requestAnimationFrame(()=>frame());
+}
+
+/* ═════════════ Demo guiada (tiempos en segundos de planta) ═════════════ */
+const DEMO=[
+  {t:0,     c:'El sensor virtual estima cada minuto el °Brix, el HMF y el color con las temperaturas, presiones y caudales que la planta ya mide. El laboratorio analiza el HMF recién cada 2 h.', a:()=>{ setSpeed(120); goView('all'); showCard('eq-soft'); }},
+  {t:1800,  c:'Subo el vapor vivo a 112 °C: el HMF virtual sube en minutos. El laboratorio lo va a confirmar recién en el próximo análisis.', a:()=>{ setSlider('ts',112); showCard('eq-quality'); }},
+  {t:8100,  c:'Llegó el análisis de laboratorio (punto negro): coincide con el sensor virtual, con el residuo dentro de ±3σ. Vuelvo el vapor a 105 °C.', a:()=>{ setSlider('ts',105); showCard('eq-soft'); }},
+  {t:9300,  c:'Falla el refractómetro: queda clavado en el último valor. El control sigue "viendo" 70 °Brix aunque el proceso cambie.', a:()=>{ setRefr(true); showCard('eq-ctrl'); }},
+  {t:9900,  c:'Se ensucian los tubos: el °Brix real cae y el refractómetro no lo ve. El sensor virtual sí, y salta la alarma de discrepancia.', a:()=>{ $('tab-dist').click(); setSlider('foul',0.35); goView('last'); }},
+  {t:11700, c:'El operador pasa el control al sensor virtual: la alimentación baja y el °Brix real vuelve a 70 sin refractómetro.', a:()=>{ setCtrlSV(true); goView('all'); showCard('eq-soft'); }},
+  {t:14700, c:'Limpieza CIP y refractómetro reparado. Ahora sale de servicio el enfriador: el sensor virtual anticipa que el color se va de especificación, horas antes del laboratorio.', a:()=>{ setSlider('foul',0); setRefr(false); setCtrlSV(false); $('tab-q').click(); setCool(false); showCard('eq-quality'); }},
+  {t:18300, c:'Fin de la demo. Los modelos se entrenaron con 14 campañas del simulador; en una planta real se reentrenan con el historiador y el laboratorio propios.', a:()=>{ setCool(true); $('tab-op').click(); }},
+  {t:19200, c:null, a:()=>stopDemo()},
+];
+let demoOn=false, demoT=0, demoI=0; const nCap=DEMO.filter(d=>d.c).length;
+function resetAll(){ PL.refrFalla=false; PL.ctrlSV=false; PL.Bext=null; setAuto(true); setCool(true); [['ts',105],['bsp',70],['foul',0],['tcw',28],['bf',12],['tank',2]].forEach(([id,v])=>{$(id).value=v; $(id).dispatchEvent(new Event('input'));});
+  ST=makeState(PL); PL.F=20000/3600; ST.F=PL.F; ST.Fbias=PL.F; for(let i=0;i<3600;i++) step(PL,ST,0.5); ST.t=0; hist.length=0; svPrecalentar(); $('refrBtn').setAttribute('aria-pressed','false'); $('refrBtn').textContent='Simular falla del refractómetro'; $('ctrlSV').setAttribute('aria-pressed','false'); $('ctrlSV').textContent='Controlar con el sensor virtual'; }
+function startDemo(){ resetAll(); demoOn=true; demoT=0; demoI=0; setSpeed(120); $('demoBtn').setAttribute('aria-pressed','true'); $('demoBtn').textContent='■ Detener demo'; }
+function stopDemo(){ demoOn=false; $('cap').hidden=true; $('demoBtn').setAttribute('aria-pressed','false'); $('demoBtn').textContent='▶ Demo guiada'; }
+function demoTick(simDt){ if(!demoOn) return; demoT+=simDt;
+  while(demoI<DEMO.length && demoT>=DEMO[demoI].t){ const st=DEMO[demoI]; demoI++; if(st.c){ const k=DEMO.slice(0,demoI).filter(d=>d.c).length; $('cap').hidden=false; $('capN').textContent=k+' / '+nCap; $('capT').innerHTML=st.c; } st.a(); } }
+$('demoBtn').addEventListener('click',()=>demoOn?stopDemo():startDemo());
+window.__sim={frame:(dt)=>frame(dt), startDemo, demoDone:()=>!demoOn, demoTime:()=>demoT};
+
+svPrecalentar(); resize(); applyTheme(); updateTags();
+if(!CAPTURE) requestAnimationFrame(()=>frame());
+})();
+
+</script>
+
+</body>
+</html>

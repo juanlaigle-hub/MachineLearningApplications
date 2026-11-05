@@ -1,0 +1,6 @@
+modelo,MAE validación cruzada,+10 % alim. → baja [%],+10 % vapor → sube [%],MAE prueba,MAE ensayo B
+Ingenuo (°Brix = 70),0.77,0.0,0.0,0.75,6.45
+Físico (EPE + balance),1.29,100.0,99.99,1.17,2.44
+Ridge (sensores + físicos),0.63,99.99,22.87,0.58,1.42
+Gradient boosting monótono,0.94,99.87,99.94,0.71,3.1
+Lineal con restricciones de signo,0.66,100.0,100.0,0.61,1.34

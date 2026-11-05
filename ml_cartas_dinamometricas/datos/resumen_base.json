@@ -1,0 +1,34 @@
+{
+ "seed": 7,
+ "porClase": 400,
+ "stats": {
+  "normal": {
+   "aceptadas": 400,
+   "descartadas": 0
+  },
+  "golpe_de_fluido": {
+   "aceptadas": 400,
+   "descartadas": 2
+  },
+  "interferencia_de_gas": {
+   "aceptadas": 400,
+   "descartadas": 0
+  },
+  "fuga_valvula_viajera": {
+   "aceptadas": 400,
+   "descartadas": 1
+  },
+  "fuga_valvula_fija": {
+   "aceptadas": 400,
+   "descartadas": 1
+  },
+  "varilla_cortada": {
+   "aceptadas": 400,
+   "descartadas": 0
+  },
+  "golpe_abajo": {
+   "aceptadas": 400,
+   "descartadas": 476
+  }
+ }
+}

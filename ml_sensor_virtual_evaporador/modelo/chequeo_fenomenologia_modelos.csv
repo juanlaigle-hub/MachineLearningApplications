@@ -1,0 +1,5 @@
+prueba,modelo,% de filas en el sentido correcto
++10 °C → HMF sube,Caja gris (HMF),100.0
++10 °C → HMF sube,Gradient boosting (sensores crudos),98.2
++10 % alimentación → °Brix baja,Lineal con restricciones de signo (°Brix),100.0
++10 % vapor → °Brix sube,Lineal con restricciones de signo (°Brix),100.0

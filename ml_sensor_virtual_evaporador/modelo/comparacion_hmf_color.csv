@@ -1,0 +1,8 @@
+variable,modelo,MAE,R2
+HMF,Gradient boosting (sensores crudos),0.459,0.8951
+HMF,Ridge (sensores crudos),0.3536,0.9289
+HMF,Arrhenius por efecto (6 coef. libres),0.3169,0.9462
+HMF,Caja gris (2 constantes cinéticas),0.4119,0.9281
+color,Gradient boosting (sensores crudos),0.0037,0.6929
+color,Ridge (sensores crudos),0.0045,0.7185
+color,Caja gris (2 constantes cinéticas),0.0022,0.9488

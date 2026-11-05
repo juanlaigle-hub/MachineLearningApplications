@@ -1,0 +1,4 @@
+modelo,exactitud prueba,F1 macro prueba,exactitud fuera de rango
+Reglas de ingeniero,0.499,0.378,0.467
+Gradient boosting,0.987,0.987,0.967
+Red neuronal MLP,0.99,0.99,0.962
