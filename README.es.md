@@ -63,7 +63,6 @@ Los simuladores físicos 3D que generan los datos están en **[Simulations3D](ht
 
 ## Notas
 
-- Desarrollado con asistencia de IA (Claude) bajo mi dirección.
 - Los modelos se entrenaron con datos **simulados**. Antes de usarlos en operación hay que validarlos y reentrenarlos
   con datos reales de campo o de planta. Cada README detalla sus limitaciones.
 - Licencia MIT.

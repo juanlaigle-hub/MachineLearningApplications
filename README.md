@@ -60,7 +60,6 @@ The 3D physics simulators that generate the data live in **[Simulations3D](https
 
 ## Notes
 
-- Built with AI assistance (Claude) under my direction.
 - The models were trained on **simulated** data. Before operational use they must be validated and retrained with
   real field or plant data. Each README details its limitations.
 - MIT license.
