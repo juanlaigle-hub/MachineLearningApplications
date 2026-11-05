@@ -9,6 +9,11 @@ Este ejercicio es independiente: no modifica el simulador de [`evaporador_jugo/`
 físico** para generar los datos (`datos/simulador_evaporador.js`).
 
 <p><img src="../assets/sensor_virtual-1.jpg" width="49%" alt=""> <img src="../assets/sensor_virtual-2.jpg" width="49%" alt=""></p>
+
+## Cómo funciona, en 5 pasos
+
+![Secuencia del sensor virtual en 5 pasos: medir, limpiar, calcular con física, estimar, usar y verificar](figuras/00_secuencia.png)
+
 **Notebook ejecutado:** [`notebook/entrenamiento_sensor_virtual.ipynb`](notebook/entrenamiento_sensor_virtual.ipynb).
 
 ## Resultados

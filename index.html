@@ -67,6 +67,8 @@ ul.tight{margin:.4em 0; padding-left:1.1em; color:var(--muted)} ul.tight li{marg
 @media (max-width: 860px){ .steps{grid-template-columns:repeat(2,1fr)} }
 .step{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; font-size:.88rem; color:var(--muted)}
 .step b{display:block; font:700 .95rem var(--f-display); color:var(--fg); margin-bottom:2px}
+.slides{display:grid; gap:16px}
+.slides img{display:block; width:100%; height:auto; border-radius:14px; border:1px solid var(--line)}
 footer{padding-block:30px 40px; color:var(--muted); font-size:.88rem; border-top:1px solid var(--line); margin-top:20px}
 footer a{color:var(--fg)}
 html[lang="es"] [data-l="en"], html[lang="en"] [data-l="es"]{display:none!important}
@@ -139,6 +141,15 @@ html[lang="es"] [data-l="en"], html[lang="en"] [data-l="es"]{display:none!import
         </div>
       </div>
     </article>
+  </section>
+
+  <section>
+    <h2><span data-l="es">Cómo funciona, paso a paso</span><span data-l="en">How it works, step by step</span></h2>
+    <p class="lead" style="margin-bottom:14px"><span data-l="es">Para quien no es especialista: la secuencia completa, desde la medición hasta la decisión.</span><span data-l="en">For non-specialists: the full sequence, from measurement to decision (slides in Spanish).</span></p>
+    <div class="slides">
+      <img src="ml_cartas_dinamometricas/figuras/00_secuencia.png" alt="Secuencia del diagnóstico de cartas en 5 pasos" loading="lazy">
+      <img src="ml_sensor_virtual_evaporador/figuras/00_secuencia.png" alt="Secuencia del sensor virtual en 5 pasos" loading="lazy">
+    </div>
   </section>
 
   <section>

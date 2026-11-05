@@ -10,6 +10,14 @@ honest training and validation, model export, and a live demo that runs in the b
 | ![](assets/clasificador-1.jpg) | **[Dynamometer card diagnosis](ml_cartas_dinamometricas/)** | Oil & gas: classify every downhole card of a sucker-rod pumped well into 7 conditions (fluid pound, gas interference, valve leaks, parted rod, pump tagging bottom) | **98.7 %** test accuracy, **96.7 %** on out-of-range wells (engineer rules: 50 %) | [Open](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_cartas_dinamometricas/clasificador.html) |
 | ![](assets/sensor_virtual-1.jpg) | **[Juice concentrate soft sensor](ml_sensor_virtual_evaporador/)** | Food: estimate every minute the °Brix (refractometer backup), HMF and color of a 5-effect apple juice evaporator | °Brix error **1.34** on an unseen step test (naive: 6.45); HMF **R² 0.93** from 120 lab samples | [Open](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_sensor_virtual_evaporador/sensor_virtual.html) |
 
+## How it works, step by step
+
+For non-specialists, one slide per project (in Spanish):
+
+![Dynamometer-card diagnosis sequence](ml_cartas_dinamometricas/figuras/00_secuencia.png)
+
+![Soft-sensor sequence](ml_sensor_virtual_evaporador/figuras/00_secuencia.png)
+
 ## Engineering decisions
 
 - **Physics first.** Features come from physics: fluid load and stroke ratio in the pump; boiling-point elevation,

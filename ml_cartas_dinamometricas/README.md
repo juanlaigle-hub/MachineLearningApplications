@@ -9,6 +9,11 @@ Este ejercicio es independiente: no modifica el simulador de [`bombeo_mecanico/`
 físico** para generar los datos (`datos/simulador_bombeo.js`).
 
 <p><img src="../assets/clasificador-1.jpg" width="49%" alt=""> <img src="../assets/clasificador-2.jpg" width="49%" alt=""></p>
+
+## Cómo funciona, en 5 pasos
+
+![Secuencia del diagnóstico de cartas en 5 pasos: medir, llevar al fondo con física, resumir en números, comparar con lo aprendido, avisar o consultar](figuras/00_secuencia.png)
+
 **Notebook ejecutado:** [`notebook/entrenamiento_clasificador.ipynb`](notebook/entrenamiento_clasificador.ipynb), que se puede ver en GitHub con todos sus gráficos.
 
 ## Resultados
