@@ -2,14 +2,16 @@
 
 **Sitio en vivo:** https://juanlaigle-hub.github.io/MachineLearningApplications/ · [English version](README.md)
 
+Las demos en vivo son confidenciales: escribime desde **Pedir una demo**.
+
 Dos problemas reales de planta resueltos de punta a punta: datos generados con simuladores físicos validados,
 chequeos de fenomenología, entrenamiento y validación honesta, exportación del modelo y una demo en vivo que corre en
 el navegador.
 
 | | Proyecto | Problema industrial | Resultado | Demo en vivo |
 |---|---|---|---|---|
-| ![](assets/clasificador-1.jpg) | **[Diagnóstico de cartas dinamométricas](ml_cartas_dinamometricas/)** | Oil & gas: clasificar cada carta de fondo de un pozo con bombeo mecánico en 7 condiciones (golpe de fluido, gas, fugas en válvulas, varilla cortada, golpe abajo) | **98,7 %** de exactitud en prueba, **96,7 %** en pozos fuera de rango (reglas de ingeniero: 50 %) | [Abrir](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_cartas_dinamometricas/clasificador.html) |
-| ![](assets/sensor_virtual-1.jpg) | **[Sensor virtual de jugo concentrado](ml_sensor_virtual_evaporador/)** | Alimentos: estimar cada minuto el °Brix (respaldo del refractómetro), el HMF y el color en un evaporador de 5 efectos de jugo de manzana | Error de °Brix **1,34** en un ensayo no visto (ingenuo: 6,45); HMF con **R² 0,93** a partir de 120 análisis | [Abrir](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_sensor_virtual_evaporador/sensor_virtual.html) |
+| ![](assets/clasificador-1.jpg) | **[Diagnóstico de cartas dinamométricas](ml_cartas_dinamometricas/)** | Oil & gas: clasificar cada carta de fondo de un pozo con bombeo mecánico en 7 condiciones (golpe de fluido, gas, fugas en válvulas, varilla cortada, golpe abajo) | **98,7 %** de exactitud en prueba, **96,7 %** en pozos fuera de rango (reglas de ingeniero: 50 %) | [Pedir una demo](mailto:juanlaigle@gmail.com?subject=Demo%3A%20Dynamometer%20card%20diagnosis) |
+| ![](assets/sensor_virtual-1.jpg) | **[Sensor virtual de jugo concentrado](ml_sensor_virtual_evaporador/)** | Alimentos: estimar cada minuto el °Brix (respaldo del refractómetro), el HMF y el color en un evaporador de 5 efectos de jugo de manzana | Error de °Brix **1,34** en un ensayo no visto (ingenuo: 6,45); HMF con **R² 0,93** a partir de 120 análisis | [Pedir una demo](mailto:juanlaigle@gmail.com?subject=Demo%3A%20Juice%20concentrate%20soft%20sensor) |
 
 ## Cómo funciona, paso a paso
 

@@ -2,13 +2,15 @@
 
 **Live site:** https://juanlaigle-hub.github.io/MachineLearningApplications/ · [Versión en español](README.es.md)
 
+The live demos are confidential: use **Request a demo** to write to me.
+
 Two real plant problems solved end to end: data generated with validated physics simulators, phenomenology checks,
 honest training and validation, model export, and a live demo that runs in the browser.
 
 | | Project | Industrial problem | Result | Live demo |
 |---|---|---|---|---|
-| ![](assets/clasificador-1.jpg) | **[Dynamometer card diagnosis](ml_cartas_dinamometricas/)** | Oil & gas: classify every downhole card of a sucker-rod pumped well into 7 conditions (fluid pound, gas interference, valve leaks, parted rod, pump tagging bottom) | **98.7 %** test accuracy, **96.7 %** on out-of-range wells (engineer rules: 50 %) | [Open](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_cartas_dinamometricas/clasificador.html) |
-| ![](assets/sensor_virtual-1.jpg) | **[Juice concentrate soft sensor](ml_sensor_virtual_evaporador/)** | Food: estimate every minute the °Brix (refractometer backup), HMF and color of a 5-effect apple juice evaporator | °Brix error **1.34** on an unseen step test (naive: 6.45); HMF **R² 0.93** from 120 lab samples | [Open](https://juanlaigle-hub.github.io/MachineLearningApplications/ml_sensor_virtual_evaporador/sensor_virtual.html) |
+| ![](assets/clasificador-1.jpg) | **[Dynamometer card diagnosis](ml_cartas_dinamometricas/)** | Oil & gas: classify every downhole card of a sucker-rod pumped well into 7 conditions (fluid pound, gas interference, valve leaks, parted rod, pump tagging bottom) | **98.7 %** test accuracy, **96.7 %** on out-of-range wells (engineer rules: 50 %) | [Request a demo](mailto:juanlaigle@gmail.com?subject=Demo%3A%20Dynamometer%20card%20diagnosis) |
+| ![](assets/sensor_virtual-1.jpg) | **[Juice concentrate soft sensor](ml_sensor_virtual_evaporador/)** | Food: estimate every minute the °Brix (refractometer backup), HMF and color of a 5-effect apple juice evaporator | °Brix error **1.34** on an unseen step test (naive: 6.45); HMF **R² 0.93** from 120 lab samples | [Request a demo](mailto:juanlaigle@gmail.com?subject=Demo%3A%20Juice%20concentrate%20soft%20sensor) |
 
 ## How it works, step by step
 
