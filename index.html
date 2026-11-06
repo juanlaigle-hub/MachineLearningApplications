@@ -29,6 +29,10 @@ body{margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 var(--f-body
 .wrap{max-width:1120px; margin:0 auto; padding:0 max(18px, env(safe-area-inset-left, 0px))}
 header.top{display:flex; align-items:center; gap:12px; padding-block:18px}
 .handle{font:600 .85rem var(--f-mono); color:var(--muted)}
+.handle a{color:var(--muted); text-decoration:none} .handle a:hover{color:var(--fg); text-decoration:underline}
+header.top .lang{flex:none}
+.handle{min-width:0; flex:1 1 auto}
+.handle .who{color:var(--fg); font-family:var(--f-display); font-size:1rem; letter-spacing:.02em}
 .spacer{flex:1}
 .lang{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden}
 .lang button{font:600 .8rem var(--f-display); letter-spacing:.06em; border:0; background:var(--panel); color:var(--muted); padding:6px 10px; cursor:pointer}
@@ -77,7 +81,7 @@ html[lang="es"] [data-l="en"], html[lang="en"] [data-l="es"]{display:none!import
 <body>
 <div class="wrap">
   <header class="top">
-    <span class="handle">github.com/juanlaigle-hub</span>
+    <span class="handle"><b class="who">Juan Laiglecia</b> · <a href="https://www.linkedin.com/in/juanlaiglecia">LinkedIn</a> · <a href="https://github.com/juanlaigle-hub">GitHub</a> · <a href="https://www.ingenieriavr.com">Ingeniería VR</a></span>
     <span class="spacer"></span>
     <div class="lang" role="group" aria-label="Idioma / Language"><button id="bES" aria-pressed="true">ES</button><button id="bEN" aria-pressed="false">EN</button></div>
   </header>
